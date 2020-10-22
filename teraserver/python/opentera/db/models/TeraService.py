@@ -197,7 +197,7 @@ class TeraService(db.Model, BaseModel):
         new_service.service_key = 'RoomReservation'
         new_service.service_name = 'Room Reservation'
         new_service.service_hostname = 'localhost'
-        new_service.service_port = 4090
+        new_service.service_port = 5000
         new_service.service_endpoint = '/'
         new_service.service_clientendpoint = '/room'
         new_service.service_enabled = True
