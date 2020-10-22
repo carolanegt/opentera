@@ -194,6 +194,17 @@ class TeraService(db.Model, BaseModel):
         new_service.service_enabled = True
         db.session.add(new_service)
 
+        new_service = TeraService()
+        new_service.service_uuid = str(uuid.uuid4())
+        new_service.service_key = 'RoomReservation'
+        new_service.service_name = 'Room Reservation'
+        new_service.service_hostname = 'localhost'
+        new_service.service_port = 4090
+        new_service.service_endpoint = '/'
+        new_service.service_clientendpoint = '/rooms'
+        new_service.service_enabled = True
+        db.session.add(new_service)
+
         db.session.commit()
 
     @classmethod
