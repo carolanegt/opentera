@@ -60,6 +60,10 @@ class ServiceLauncherModule(BaseModule):
             path = os.path.join(os.getcwd(), 'services', 'VideoRehabService', 'VideoRehabService.py')
             executable_args.append(path)
             working_directory = os.path.join(os.getcwd(), 'services', 'VideoRehabService')
+        elif service.service_key == 'RoomReservation':
+            path = os.path.join(os.getcwd(), 'services', 'RoomReservation', 'RoomReservationService.py')
+            executable_args.append(path)
+            working_directory = os.path.join(os.getcwd(), 'services', 'RoomReservation')
         else:
             print('Unable to start :', service.service_key)
             self.logger.log_error(self.module_name, 'Unable to start', service.service_key)
