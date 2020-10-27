@@ -1,28 +1,17 @@
-from services.RoomReservation.libbureauactif.db.Base import db, BaseModel
+from services.RoomReservation.libroomreservation.db.Base import db, BaseModel
 
 
 class RoomReservationRoom(db.Model, BaseModel):
     __tablename__ = "t_rooms"
     id_room = db.Column(db.Integer, db.Sequence('id_data_sequence'), primary_key=True, autoincrement=True)
     id_site = db.Column(db.Integer, nullable=False)
-    room_site_uuid = db.Column(db.String(36), nullable=False)
     room_name = db.Column(db.String, nullable=False)
-
-    room_site = db.relationship("TeraSite")
-    room_session = db.relationship("TeraSession")
 
     def to_json(self, ignore_fields=None, minimal=False):
         if ignore_fields is None:
             ignore_fields = []
 
-        ignore_fields.extend(['room_site'])
-        rval = super().to_json(ignore_fields=ignore_fields)
-
-        # Add name of site
-        if 'site_name' not in ignore_fields and not minimal:
-            rval['site_name'] = self.room_site.site_name
-
-        return rval
+        return super().to_json(ignore_fields=ignore_fields)
 
     @staticmethod
     def get_room_by_id(room_id: int):

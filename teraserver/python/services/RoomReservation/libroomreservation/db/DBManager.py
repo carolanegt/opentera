@@ -1,9 +1,9 @@
 # Using same base as TeraServer
-from services.BureauActif.libbureauactif.db.Base import db
+from services.RoomReservation.libroomreservation.db.Base import db
 
 # Must include all Database objects here to be properly initialized and created if needed
 # All at once to make sure all files are registered.
-from services.BureauActif.libbureauactif.db.models import *
+from services.RoomReservation.libroomreservation.db.models import *
 
 from services.RoomReservation.ConfigManager import ConfigManager
 
@@ -13,8 +13,8 @@ from services.RoomReservation.FlaskModule import flask_app
 from alembic.config import Config
 from alembic import command
 
-from services.RoomReservation.libbureauactif.db.DBManagerRoomReservationAccess import DBManagerRoomReservationAccess
-from services.RoomReservation.libbureauactif.db.models.RoomReservationRoom import RoomReservationRoom
+from services.RoomReservation.libroomreservation.db.DBManagerRoomReservationAccess import DBManagerRoomReservationAccess
+from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 
 
 class DBManager:
