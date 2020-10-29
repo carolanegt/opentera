@@ -32,8 +32,8 @@ get_parser.add_argument('full', type=inputs.boolean, help='Flag that expands the
                                                           'information')
 get_parser.add_argument('no_group', type=inputs.boolean,
                         help='Flag that limits the returned data with only participants without a group')
-get_parser.add_argument('with_status', type=inputs.boolean, help='Include status information - offline, online, busy '
-                                                                 'for each participant')
+# get_parser.add_argument('with_status', type=inputs.boolean, help='Include status information - offline, online, busy '
+#                                                                  'for each participant')
 
 # post_parser = reqparse.RequestParser()
 post_schema = api.schema_model('user_participant', {'properties': TeraParticipant.get_json_schema(),
@@ -112,17 +112,14 @@ class UserQueryParticipants(Resource):
                     break
                 if participant.id_participant not in user_access.get_accessible_participants_ids():
                     participants = []
-
         try:
             if participants:
                 participant_list = []
-                online_participants = []
-                busy_participants = []
-                if args['with_status']:
-                    # Query status
-                    rpc = RedisRPCClient(self.module.config.redis_config)
-                    online_participants = rpc.call(ModuleNames.USER_MANAGER_MODULE_NAME.value, 'online_participants')
-                    busy_participants = rpc.call(ModuleNames.USER_MANAGER_MODULE_NAME.value, 'busy_participants')
+                status_participants = {}
+
+                # Query status
+                rpc = RedisRPCClient(self.module.config.redis_config)
+                status_participants = rpc.call(ModuleNames.USER_MANAGER_MODULE_NAME.value, 'status_participants')
 
                 for participant in participants:
                     if args['enabled'] is not None:
@@ -163,15 +160,24 @@ class UserQueryParticipants(Resource):
                                 participant_json['participant_devices'] = devices
                                 participant_json['participant_project'] = participant.participant_project.to_json()
 
-                        if args['with_status']:
-                            participant_json['participant_busy'] = participant.participant_uuid in busy_participants
-                            participant_json['participant_online'] = participant.participant_uuid in online_participants
+                        # Update participants status
+                        if participant.participant_uuid in status_participants:
+                            participant_json['participant_busy'] = \
+                                status_participants[participant.participant_uuid]['busy']
+                            participant_json['participant_online'] = \
+                                status_participants[participant.participant_uuid]['online']
+                        else:
+                            participant_json['participant_busy'] = False
+                            participant_json['participant_online'] = False
 
                         participant_list.append(participant_json)
 
                 return jsonify(participant_list)
 
-        except InvalidRequestError:
+        except InvalidRequestError as e:
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQueryParticipants.__name__,
+                                         'get', 500, 'Database error', str(e))
             return '', 500
 
     @user_multi_auth.login_required
@@ -219,7 +225,7 @@ class UserQueryParticipants(Resource):
                 participant_group = TeraParticipantGroup.get_participant_group_by_id(
                     json_participant['id_participant_group'])
                 if participant_group is None:
-                    return gettext('Participant group not found.'), 500
+                    return gettext('Participant group not found.'), 400
                 if participant_group.id_project != json_participant['id_project'] \
                         and json_participant['id_project'] > 0:
                     return gettext('Mismatch between id_project and group\'s project'), 400
@@ -239,8 +245,14 @@ class UserQueryParticipants(Resource):
             except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryParticipants.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return e.args, 500
             except NameError as e:
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryParticipants.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return e.args, 500
         else:
             # New
@@ -253,13 +265,30 @@ class UserQueryParticipants(Resource):
             except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryParticipants.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return e.args, 500
             except NameError as e:
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryParticipants.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return e.args, 500
 
         update_participant = TeraParticipant.get_participant_by_id(json_participant['id_participant'])
         update_participant_json = update_participant.to_json()
-        # update_participant_json['id_site'] = update_participant.participant_project.id_site
+
+        # Query status
+        rpc = RedisRPCClient(self.module.config.redis_config)
+        status_participants = rpc.call(ModuleNames.USER_MANAGER_MODULE_NAME.value, 'status_participants')
+        if update_participant.participant_uuid in status_participants:
+            update_participant_json['participant_busy'] = \
+                status_participants[update_participant.participant_uuid]['busy']
+            update_participant_json['participant_online'] = \
+                status_participants[update_participant.participant_uuid]['online']
+        else:
+            update_participant_json['participant_busy'] = False
+            update_participant_json['participant_online'] = False
 
         return jsonify([update_participant_json])
 
@@ -295,10 +324,16 @@ class UserQueryParticipants(Resource):
             # - Assets by that participant
             # In all case, deleting associated sessions will clear that all, since a participant cannot create sessions
             # or assets not for itself.
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQueryParticipants.__name__,
+                                         'delete', 500, 'Database error', str(e))
             return gettext('Can\'t delete participant: please delete all sessions before deleting.'), 500
-        except exc.SQLAlchemyError:
+        except exc.SQLAlchemyError as e:
             import sys
             print(sys.exc_info())
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQueryParticipants.__name__,
+                                         'delete', 500, 'Database error', str(e))
             return gettext('Database Error'), 500
 
         return '', 200

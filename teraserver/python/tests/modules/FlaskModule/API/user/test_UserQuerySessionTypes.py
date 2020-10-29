@@ -35,7 +35,6 @@ class UserQuerySessionTypesTest(BaseAPITest):
             self.assertTrue(data_item.__contains__('id_session_type'))
             self.assertTrue(data_item.__contains__('session_type_category'))
             self.assertTrue(data_item.__contains__('session_type_config'))
-            self.assertTrue(data_item.__contains__('session_type_multi'))
             self.assertTrue(data_item.__contains__('session_type_name'))
             self.assertTrue(data_item.__contains__('session_type_online'))
             self.assertTrue(data_item.__contains__('session_type_color'))
@@ -60,6 +59,24 @@ class UserQuerySessionTypesTest(BaseAPITest):
         for data_item in json_data:
             self._checkJson(json_data=data_item)
 
+    def test_query_specific_project_as_admin(self):
+        response = self._request_with_http_auth(username='admin', password='admin', payload="id_project=2")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Content-Type'], 'application/json')
+        json_data = response.json()
+        self.assertEqual(len(json_data), 0)
+
+        for data_item in json_data:
+            self._checkJson(json_data=data_item)
+
+        response = self._request_with_http_auth(username='admin', password='admin', payload="id_project=1&list=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Content-Type'], 'application/json')
+        json_data = response.json()
+
+        for data_item in json_data:
+            self._checkJson(json_data=data_item, minimal=True)
+
     def test_post_and_delete(self):
         # New with minimal infos
         json_data = {
@@ -67,7 +84,6 @@ class UserQuerySessionTypesTest(BaseAPITest):
                 'id_service': None,
                 'session_type_category': 1,
                 'session_type_color': 'red',
-                'session_type_multi': False,
                 'session_type_name': 'Test',
                 'session_type_online': True
             }
@@ -150,7 +166,6 @@ class UserQuerySessionTypesTest(BaseAPITest):
         self.assertTrue(json_data.__contains__('session_type_name'))
         if not minimal:
             self.assertTrue(json_data.__contains__('session_type_config'))
-            self.assertTrue(json_data.__contains__('session_type_multi'))
             self.assertTrue(json_data.__contains__('session_type_online'))
             self.assertTrue(json_data.__contains__('session_type_color'))
 

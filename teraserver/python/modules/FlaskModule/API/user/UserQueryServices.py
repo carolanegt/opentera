@@ -1,5 +1,7 @@
 from flask import jsonify, session, request
 from flask_restx import Resource, reqparse, inputs
+
+from libtera.db.models import TeraServiceProject
 from modules.LoginModule.LoginModule import user_multi_auth
 from modules.FlaskModule.FlaskModule import user_api_ns as api
 from sqlalchemy.exc import InvalidRequestError
@@ -19,6 +21,7 @@ get_parser.add_argument('uuid', type=str, help='Service UUID to query')
 get_parser.add_argument('key', type=str, help='Service Key to query')
 get_parser.add_argument('list', type=inputs.boolean, help='Flag that limits the returned data to minimal information')
 get_parser.add_argument('with_config', type=inputs.boolean, help='Only return services with editable configuration')
+get_parser.add_argument('with_projects', type=inputs.boolean, help='Return services with service projects')
 
 
 # post_parser = reqparse.RequestParser()
@@ -43,11 +46,9 @@ class UserQueryServices(Resource):
              responses={200: 'Success - returns list of services',
                         500: 'Database error'})
     def get(self):
-        parser = get_parser
-
         current_user = TeraUser.get_user_by_uuid(session['_user_id'])
         user_access = DBManager.userAccess(current_user)
-        args = parser.parse_args()
+        args = get_parser.parse_args()
 
         services = []
         # If we have no arguments, return all accessible projects
@@ -81,13 +82,22 @@ class UserQueryServices(Resource):
                 if args['with_config']:
                     if not service.service_editable_config:
                         continue
+                if args['with_projects']:
+                    # Get all current association for service
+                    current_projects = TeraServiceProject.get_projects_for_service(id_service=service.id_service)
+                    service_projects = []
+                    for project in current_projects:
+                        service_projects.append(project.to_json())
                 service_json = service.to_json(minimal=args['list'])
                 services_list.append(service_json)
 
             return jsonify(services_list)
 
-        except InvalidRequestError:
-            return '', 500
+        except InvalidRequestError as e:
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQueryServices.__name__,
+                                         'get', 500, 'InvalidRequestError', str(e))
+            return gettext('Invalid request'), 500
 
     @user_multi_auth.login_required
     @api.expect(post_schema)
@@ -136,10 +146,13 @@ class UserQueryServices(Resource):
                     if service.service_system != json_service['service_system']:
                         return gettext('Can\'t change system services from that API'), 403
                 TeraService.update(json_service['id_service'], json_service)
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
-                return '', 500
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryServices.__name__,
+                                             'post', 500, 'Database error', str(e))
+                return gettext('Database error'), 500
             except jsonschema.exceptions.SchemaError:
                 return gettext('Invalid config json schema'), 400
         else:
@@ -150,10 +163,13 @@ class UserQueryServices(Resource):
                 TeraService.insert(new_service)
                 # Update ID for further use
                 json_service['id_service'] = new_service.id_service
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
-                return '', 500
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQueryServices.__name__,
+                                             'post', 500, 'Database error', str(e))
+                return gettext('Database error'), 500
             except jsonschema.exceptions.SchemaError:
                 return gettext('Invalid config json schema'), 400
 
@@ -217,9 +233,12 @@ class UserQueryServices(Resource):
         # If we are here, we are allowed to delete. Do so.
         try:
             TeraService.delete(id_todel=id_todel)
-        except exc.SQLAlchemyError:
+        except exc.SQLAlchemyError as e:
             import sys
             print(sys.exc_info())
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQueryServices.__name__,
+                                         'delete', 500, 'Database error', str(e))
             return gettext('Database error'), 500
 
         return '', 200

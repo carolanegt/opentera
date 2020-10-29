@@ -71,8 +71,11 @@ class ServiceQuerySessions(Resource):
 
             return sessions_list
 
-        except InvalidRequestError:
-            return gettext('Database error'), 500
+        except InvalidRequestError as e:
+            self.module.logger.log_error(self.module.module_name,
+                                         ServiceQuerySessions.__name__,
+                                         'get', 500, 'InvalidRequestError', str(e))
+            return gettext('Invalid request'), 500
 
     @LoginModule.service_token_or_certificate_required
     @api.doc(description='Create / update session. id_session must be set to "0" to create a new '
@@ -115,9 +118,12 @@ class ServiceQuerySessions(Resource):
             # Already existing
             try:
                 TeraSession.update(json_session['id_session'], json_session)
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             ServiceQuerySessions.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
         else:
             # New session
@@ -134,7 +140,8 @@ class ServiceQuerySessions(Resource):
                 if not isinstance(session_date, datetime.datetime):
                     import dateutil.parser as parser
                     session_date = parser.parse(json_session['session_start_datetime'])
-                session_name += ' [' + session_date.strftime('%d-%m-%Y %H:%M') + ']'
+                # session_name += ' [' + session_date.strftime('%d-%m-%Y %H:%M') + ']'
+                session_name += ' [' + str(session_date.year) + '.' + str(TeraSession.get_count()) + ']'
                 json_session['session_name'] = session_name
 
             if 'session_status' not in json_session:
@@ -145,9 +152,12 @@ class ServiceQuerySessions(Resource):
                 TeraSession.insert(new_ses)
                 # Update ID for further use
                 json_session['id_session'] = new_ses.id_session
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             ServiceQuerySessions.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
 
         update_session = TeraSession.get_session_by_id(json_session['id_session'])

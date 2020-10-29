@@ -5,6 +5,7 @@ from libtera.ConfigManager import ConfigManager
 from flask_babel import Babel
 from modules.BaseModule import BaseModule, ModuleNames
 from libtera.db.models.TeraServerSettings import TeraServerSettings
+import redis
 
 # Flask application
 flask_app = Flask("TeraServer")
@@ -77,13 +78,18 @@ class FlaskModule(BaseModule):
 
         BaseModule.__init__(self, ModuleNames.FLASK_MODULE_NAME.value, config)
 
-        flask_app.debug = True
+        # Use debug mode flag
+        flask_app.debug = config.server_config['debug_mode']
         # flask_app.secret_key = 'development'
         # Change secret key to use server UUID
         # This is used for session encryption
         flask_app.secret_key = TeraServerSettings.get_server_setting_value(TeraServerSettings.ServerUUID)
 
         flask_app.config.update({'SESSION_TYPE': 'redis'})
+        redis_url = redis.from_url('redis://%(username)s:%(password)s@%(hostname)s:%(port)s/%(db)s'
+                                   % self.config.redis_config)
+
+        flask_app.config.update({'SESSION_REDIS': redis_url})
         flask_app.config.update({'BABEL_DEFAULT_LOCALE': 'fr'})
         flask_app.config.update({'SESSION_COOKIE_SECURE': True})
         # TODO set upload folder in config
@@ -280,28 +286,15 @@ class FlaskModule(BaseModule):
         api.add_namespace(service_api_ns)
 
     def init_views(self):
-        from .Views.User import User
-        from .Views.Upload import Upload
-        from .Views.Participant import Participant
-        from .Views.DeviceRegistration import DeviceRegistration
-        from .Views.Versions import Versions
+
+        from .Views.About import About
 
         # Default arguments
         args = []
         kwargs = {'flaskModule': self}
 
-        # User test view
-        flask_app.add_url_rule('/user', view_func=User.as_view('user', *args, **kwargs))
-
-        # Participant test view
-        flask_app.add_url_rule('/participant', view_func=Participant.as_view('participant', *args, **kwargs))
-
-        # Versions
-        flask_app.add_url_rule('/versions', view_func=Versions.as_view('versions', *args, **kwargs))
-
-        # flask_app.add_url_rule('/upload/', view_func=Upload.as_view('upload', *args, **kwargs))
-        # flask_app.add_url_rule('/device_registration', view_func=DeviceRegistration.as_view('device_register', *args,
-        #                                                                                    **kwargs))
+        # About
+        flask_app.add_url_rule('/about', view_func=About.as_view('about', *args, **kwargs))
 
 
 @flask_app.after_request

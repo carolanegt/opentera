@@ -29,7 +29,7 @@ class TeraSessionEvent(db.Model, BaseModel):
                                  autoincrement=True)
     id_session = db.Column(db.Integer, db.ForeignKey('t_sessions.id_session', ondelete='cascade'), nullable=False)
     id_session_event_type = db.Column(db.Integer, nullable=False)
-    session_event_datetime = db.Column(db.TIMESTAMP, nullable=False)
+    session_event_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     session_event_text = db.Column(db.String, nullable=True)
     session_event_context = db.Column(db.String, nullable=True)
 
@@ -48,20 +48,21 @@ class TeraSessionEvent(db.Model, BaseModel):
         return rval
 
     @staticmethod
-    def create_defaults():
-        from libtera.db.models.TeraSession import TeraSession
+    def create_defaults(test=False):
+        if test:
+            from libtera.db.models.TeraSession import TeraSession
 
-        base_session = TeraSession.get_session_by_name('Séance #1')
-        for i in range(12):
-            event = TeraSessionEvent()
-            event.session_event_session = base_session
-            event.id_session_event_type = i
-            event.session_event_datetime = datetime.now() - timedelta(hours=random.randint(0, 10)) - timedelta(
-                minutes=random.randint(0, 45))
-            event.session_event_context = 'Défaut'
-            event.session_event_text = str(TeraSessionEvent.SessionEventTypes(i))
-            db.session.add(event)
-        db.session.commit()
+            base_session = TeraSession.get_session_by_name('Séance #1')
+            for i in range(12):
+                event = TeraSessionEvent()
+                event.session_event_session = base_session
+                event.id_session_event_type = i
+                event.session_event_datetime = datetime.now() - timedelta(hours=random.randint(0, 10)) - timedelta(
+                    minutes=random.randint(0, 45))
+                event.session_event_context = 'Défaut'
+                event.session_event_text = str(TeraSessionEvent.SessionEventTypes(i))
+                db.session.add(event)
+            db.session.commit()
 
     @staticmethod
     def get_session_event_by_id(event_id: int):

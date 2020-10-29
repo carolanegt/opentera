@@ -94,6 +94,23 @@ class ClientVersions:
                 'client_mac_download_url': self.client_mac_download_url,
                 'client_linux_download_url': self.client_linux_download_url}
 
+    @classmethod
+    def get_json_schema(cls):
+        model_name = cls.__name__
+        # Properties dict
+        pr_dict = dict()
+        # Fill properties
+        pr_dict['client_name'] = {'type': 'string', 'required': True}
+        pr_dict['client_description'] = {'type': 'string', 'required': True}
+        pr_dict['client_version'] = {'type': 'string', 'required': True}
+        pr_dict['client_documentation_url'] = {'type': 'string', 'required': True}
+        pr_dict['client_windows_download_url'] = {'type': 'string', 'required': False}
+        pr_dict['client_mac_download_url'] = {'type': 'string', 'required': False}
+        pr_dict['client_linux_download_url'] = {'type': 'string', 'required': False}
+
+        schema = {model_name: {'properties': pr_dict, 'type': 'object'}}
+        return schema
+
     def __repr__(self):
         return '<ClientVersions ' + json.dumps(self.to_dict()) + ' >'
 
@@ -109,7 +126,7 @@ class TeraVersions:
         # Will be overwritten if necessary
         self.clients['OpenTeraPlus'] = ClientVersions(client_name='OpenTeraPlus',
                                                       client_description='OpenTeraPlus Qt Client',
-                                                      client_version='0.1.0',
+                                                      client_version='1.0.0',
                                                       client_documentation_url=
                                                       'https://github.com/introlab/openteraplus')
 
@@ -197,3 +214,4 @@ class TeraVersions:
 #     print(versions.get_client_version_with_name('Unknown'))
 #     print(versions)
 #     print(versions2)
+#     print(ClientVersions.get_json_schema())

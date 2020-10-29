@@ -1,7 +1,7 @@
 """
 Project OpenTera (https://github.com/introlab/opentera)
 
-Copyright (C) 2019
+Copyright (C) 2020
 IntRoLab / ESTRAD, Université de Sherbrooke, Centre de Recherche sur le Vieillissement de Sherbrooke
 
 Authors:
@@ -91,9 +91,12 @@ def init_shared_variables(config):
 
     # Create redis client
     import redis
-    # TODO: Manage redis password
-    redis_client = redis.Redis(host=config.redis_config['hostname'], port=config.redis_config['port'],
-                               db=config.redis_config['db'])
+
+    redis_client = redis.Redis(host=config.redis_config['hostname'],
+                               port=config.redis_config['port'],
+                               db=config.redis_config['db'],
+                               username=config.redis_config['username'],
+                               password=config.redis_config['password'])
 
     # Set API Token Keys
     from modules.RedisVars import RedisVars
@@ -131,9 +134,11 @@ def init_services(config: ConfigManager):
     import json
     # Create redis client
     import redis
-    # TODO: Manage redis password
-    redis_client = redis.Redis(host=config.redis_config['hostname'], port=config.redis_config['port'],
-                               db=config.redis_config['db'])
+    redis_client = redis.Redis(host=config.redis_config['hostname'],
+                               port=config.redis_config['port'],
+                               db=config.redis_config['db'],
+                               username=config.redis_config['username'],
+                               password=config.redis_config['password'])
 
     # Set python path to current folder so that import work from services
     tera_python_dir = pathlib.Path(__file__).parent.absolute()
@@ -153,6 +158,10 @@ def init_services(config: ConfigManager):
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='OpenTera Server')
+    parser.add_argument('--enable_tests', help='Test mode for server.', default=False)
+    args = parser.parse_args()
 
     config_man = ConfigManager()
 
@@ -184,7 +193,8 @@ if __name__ == '__main__':
     generate_certificates(config_man)
 
     # Verify file upload path, create if does not exist
-    verify_file_upload_directory(config_man, True)
+    # TODO Remove this, not needed. Now handled by FileTransferService
+    # verify_file_upload_directory(config_man, True)
 
     # DATABASE CONFIG AND OPENING
     #############################
@@ -198,13 +208,22 @@ if __name__ == '__main__':
     Globals.db_man = DBManager(config_man)
 
     try:
-        Globals.db_man.open(True)
-    except OperationalError:
-        print("Unable to connect to database - please check settings in config file!")
-        quit()
+        # Echo will be set by "debug_mode" flag
+        if args.enable_tests:
+            # In RAM SQLITE DB for tests
+            Globals.db_man.open_local(None, echo=True, ram=True)
 
-    # Create default values, if required
-    Globals.db_man.create_defaults(config=config_man)
+            # Create default values, if required
+            Globals.db_man.create_defaults(config=config_man, test=True)
+        else:
+            Globals.db_man.open(config_man.server_config['debug_mode'])
+
+            # Create minimal values, if required
+            Globals.db_man.create_defaults(config=config_man, test=True)
+
+    except OperationalError as e:
+        print("Unable to connect to database - please check settings in config file!", e)
+        quit()
 
     # Create Redis variables shared with services
     init_shared_variables(config=config_man)

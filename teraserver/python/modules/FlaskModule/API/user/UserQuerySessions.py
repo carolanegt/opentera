@@ -51,7 +51,7 @@ class UserQuerySessions(Resource):
         sessions = []
         # Can't query sessions, unless we have a parameter!
         if not any(args.values()):
-            return '', 400
+            return gettext('Missing arguments'), 400
 
         elif args['id_participant']:
             if args['id_participant'] in user_access.get_accessible_participants_ids():
@@ -62,26 +62,28 @@ class UserQuerySessions(Resource):
             if args['id_user'] in user_access.get_accessible_users_ids():
                 sessions = TeraSession.get_sessions_for_user(args['id_user'])
         elif args['session_uuid']:
-            sessions = TeraSession.get_session_by_uuid(args['session_uuid'])
-            if sessions and sessions.id_session not in user_access.get_accessible_sessions_ids():
-                sessions = []  # Current user doesn't have access to the requested session
-            else:
-                sessions = [sessions]
+            session_info = TeraSession.get_session_by_uuid(args['session_uuid'])
+            if session_info:
+                sessions = [user_access.query_session(session_info.id_session)]
 
         try:
             sessions_list = []
             for ses in sessions:
-                if args['list'] is None:
-                    session_json = ses.to_json()
-                    sessions_list.append(session_json)
-                else:
-                    session_json = ses.to_json(minimal=True)
-                    sessions_list.append(session_json)
+                if ses is not None:  # Could be none if no access to specified session
+                    if args['list'] is None:
+                        session_json = ses.to_json()
+                        sessions_list.append(session_json)
+                    else:
+                        session_json = ses.to_json(minimal=True)
+                        sessions_list.append(session_json)
 
             return jsonify(sessions_list)
 
-        except InvalidRequestError:
-            return '', 500
+        except InvalidRequestError as e:
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQuerySessions.__name__,
+                                         'get', 500, 'InvalidRequestError', str(e))
+            return gettext('Invalid request'), 500
 
     @user_multi_auth.login_required
     @api.doc(description='Create / update session. id_session must be set to "0" to create a new '
@@ -149,9 +151,12 @@ class UserQuerySessions(Resource):
             # Already existing
             try:
                 TeraSession.update(json_session['id_session'], json_session)
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQuerySessions.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
         else:
             # New
@@ -161,18 +166,20 @@ class UserQuerySessions(Resource):
                 TeraSession.insert(new_ses)
                 # Update ID for further use
                 json_session['id_session'] = new_ses.id_session
-            except exc.SQLAlchemyError:
+            except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
+                self.module.logger.log_error(self.module.module_name,
+                                             UserQuerySessions.__name__,
+                                             'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
 
         update_session = TeraSession.get_session_by_id(json_session['id_session'])
 
         # Manage session participants
         if 'session_participants_ids' in json_session:
-            new_parts = [TeraParticipant.get_participant_by_id(part_id)
-                         for part_id in json_session['session_participants_ids']]
-            update_session.session_participants = new_parts
+            update_session.session_participants = [TeraParticipant.get_participant_by_id(part_id)
+                                                   for part_id in json_session['session_participants_ids']]
 
         # Manage session users
         if 'session_users_ids' in json_session:
@@ -228,12 +235,19 @@ class UserQuerySessions(Resource):
             # At least one session user is not accessible to the user
             return gettext('User doesn\'t have access to at least one device of that session.'), 403
 
+        from libtera.db.models.TeraSession import TeraSessionStatus
+        if todel_session.session_status == TeraSessionStatus.STATUS_INPROGRESS.value:
+            return gettext('Session is in progress: can\'t delete that session.'), 403
+
         # If we are here, we are allowed to delete. Do so.
         try:
             TeraSession.delete(id_todel=id_todel)
-        except exc.SQLAlchemyError:
+        except exc.SQLAlchemyError as e:
             import sys
             print(sys.exc_info())
+            self.module.logger.log_error(self.module.module_name,
+                                         UserQuerySessions.__name__,
+                                         'delete', 500, 'Database error', str(e))
             return gettext('Database error'), 500
 
         return '', 200

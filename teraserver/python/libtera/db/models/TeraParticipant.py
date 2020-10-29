@@ -31,7 +31,7 @@ class TeraParticipant(db.Model, BaseModel):
     participant_password = db.Column(db.String, nullable=True)
     participant_token_enabled = db.Column(db.Boolean, nullable=False, default=False)
     participant_token = db.Column(db.String, nullable=True, unique=True)
-    participant_lastonline = db.Column(db.TIMESTAMP, nullable=True)
+    participant_lastonline = db.Column(db.TIMESTAMP(timezone=True), nullable=True)
     participant_enabled = db.Column(db.Boolean, nullable=False, default=True)
     participant_login_enabled = db.Column(db.Boolean, nullable=False, default=False)
     id_participant_group = db.Column(db.Integer, db.ForeignKey('t_participants_groups.id_participant_group',
@@ -228,52 +228,53 @@ class TeraParticipant(db.Model, BaseModel):
         return TeraParticipant.query.filter_by(participant_username=username).first() is None
 
     @staticmethod
-    def create_defaults():
-        from libtera.db.models.TeraProject import TeraProject
-        project1 = TeraProject.get_project_by_projectname('Default Project #1')
+    def create_defaults(test=False):
+        if test:
+            from libtera.db.models.TeraProject import TeraProject
+            project1 = TeraProject.get_project_by_projectname('Default Project #1')
 
-        participant1 = TeraParticipant()
-        participant1.participant_name = 'Participant #1'
-        participant1.participant_enabled = True
-        participant1.participant_uuid = str(uuid.uuid4())
-        participant1.participant_participant_group = \
-            TeraParticipantGroup.get_participant_group_by_group_name('Default Participant Group A')
-        participant1.participant_project = project1
+            participant1 = TeraParticipant()
+            participant1.participant_name = 'Participant #1'
+            participant1.participant_enabled = True
+            participant1.participant_uuid = str(uuid.uuid4())
+            participant1.participant_participant_group = \
+                TeraParticipantGroup.get_participant_group_by_group_name('Default Participant Group A')
+            participant1.participant_project = project1
 
-        # participant1.create_token()
-        participant1.participant_username = 'participant1'
-        participant1.participant_password = TeraParticipant.encrypt_password('opentera')
-        participant1.participant_login_enabled = True
-        participant1.participant_token_enabled = True
+            # participant1.create_token()
+            participant1.participant_username = 'participant1'
+            participant1.participant_password = TeraParticipant.encrypt_password('opentera')
+            participant1.participant_login_enabled = True
+            participant1.participant_token_enabled = True
 
-        db.session.add(participant1)
+            db.session.add(participant1)
 
-        participant2 = TeraParticipant()
-        participant2.participant_name = 'Participant #2'
-        participant2.participant_enabled = False
-        participant2.participant_uuid = str(uuid.uuid4())
-        participant2.participant_participant_group = None
-        participant2.participant_project = project1
+            participant2 = TeraParticipant()
+            participant2.participant_name = 'Participant #2'
+            participant2.participant_enabled = False
+            participant2.participant_uuid = str(uuid.uuid4())
+            participant2.participant_participant_group = None
+            participant2.participant_project = project1
 
-        db.session.add(participant2)
+            db.session.add(participant2)
 
-        participant2 = TeraParticipant()
-        participant2.participant_name = 'Participant #3'
-        participant2.participant_enabled = True
-        participant2.participant_token_enabled = True
-        participant2.participant_uuid = str(uuid.uuid4())
-        participant2.participant_participant_group = None
-        participant2.participant_project = project1
+            participant2 = TeraParticipant()
+            participant2.participant_name = 'Participant #3'
+            participant2.participant_enabled = True
+            participant2.participant_token_enabled = True
+            participant2.participant_uuid = str(uuid.uuid4())
+            participant2.participant_participant_group = None
+            participant2.participant_project = project1
 
-        # participant2.create_token()
-        db.session.add(participant2)
+            # participant2.create_token()
+            db.session.add(participant2)
 
-        db.session.commit()
+            db.session.commit()
 
-        # Create token with added participants, since we need to have the id_participant field set
-        participant1.create_token()
-        participant2.create_token()
-        db.session.commit()
+            # Create token with added participants, since we need to have the id_participant field set
+            participant1.create_token()
+            participant2.create_token()
+            db.session.commit()
 
     @classmethod
     def update(cls, update_id: int, values: dict):
@@ -318,6 +319,7 @@ class TeraParticipant(db.Model, BaseModel):
 
         participant.participant_lastonline = None
         participant.participant_uuid = str(uuid.uuid4())
+        participant.participant_token = None
         # participant.create_token()
         # Check if username is available
         if not TeraParticipant.is_participant_username_available(participant.participant_username):

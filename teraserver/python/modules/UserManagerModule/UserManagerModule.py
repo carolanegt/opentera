@@ -31,15 +31,21 @@ class UserManagerModule(BaseModule):
     def setup_rpc_interface(self):
         self.rpc_api['online_users'] = {'args': [], 'returns': 'list', 'callback': self.online_users_rpc_callback}
         self.rpc_api['busy_users'] = {'args': [], 'returns': 'dict', 'callback': self.busy_users_rpc_callback}
+        self.rpc_api['status_users'] = {'args': [], 'returns': 'dict', 'callback': self.status_users_rpc_callback}
 
         self.rpc_api['online_participants'] = {'args': [], 'returns': 'list',
                                                'callback': self.online_participants_rpc_callback}
         self.rpc_api['busy_participants'] = {'args': [], 'returns': 'dict',
                                              'callback': self.busy_participants_rpc_callback}
 
+        self.rpc_api['status_participants'] = {'args': [], 'returns': 'dict',
+                                               'callback': self.status_participants_rpc_callback}
+
         self.rpc_api['online_devices'] = {'args': [], 'returns': 'list',
                                           'callback': self.online_devices_rpc_callback}
         self.rpc_api['busy_devices'] = {'args': [], 'returns': 'dict', 'callback': self.busy_devices_rpc_callback}
+
+        self.rpc_api['status_devices'] = {'args': [], 'returns': 'dict', 'callback': self.status_devices_rpc_callback}
 
     def online_users_rpc_callback(self, *args, **kwargs):
         print('online_users_rpc_callback', args, kwargs)
@@ -64,6 +70,66 @@ class UserManagerModule(BaseModule):
     def busy_devices_rpc_callback(self, *args, **kwargs):
         print('busy_devices_rpc_callback', args, kwargs)
         return self.device_registry.busy_devices()
+
+    def status_users_rpc_callback(self, *args, **kwargs):
+        # Get online users
+        online_users = [uuid for uuid in self.user_registry.online_users()]
+        # Get busy users
+        busy_users = [uuid for uuid in self.user_registry.busy_users()]
+        # Get unique uuids (merge lists)
+        all_uuids = set(online_users + busy_users)
+
+        result = {}
+        for user_uuid in all_uuids:
+            online_flag = False
+            busy_flag = False
+            if user_uuid in online_users:
+                online_flag = True
+            if user_uuid in busy_users:
+                busy_flag = True
+
+            result[user_uuid] = {'online': online_flag, 'busy': busy_flag}
+        return result
+
+    def status_participants_rpc_callback(self, *args, **kwargs):
+        # Get online participants
+        online_participants = [uuid for uuid in self.participant_registry.online_participants()]
+        # Get busy participants
+        busy_participants = [uuid for uuid in self.participant_registry.busy_participants()]
+        # Get unique uuids (merge lists)
+        all_uuids = set(online_participants + busy_participants)
+
+        result = {}
+        for participant_uuid in all_uuids:
+            online_flag = False
+            busy_flag = False
+            if participant_uuid in online_participants:
+                online_flag = True
+            if participant_uuid in busy_participants:
+                busy_flag = True
+
+            result[participant_uuid] = {'online': online_flag, 'busy': busy_flag}
+        return result
+
+    def status_devices_rpc_callback(self, *args, **kwargs):
+        # Get online devices
+        online_devices = [uuid for uuid in self.device_registry.online_devices()]
+        # Get busy devices
+        busy_devices = [uuid for uuid in self.device_registry.busy_devices()]
+        # Get unique uuids (merge lists)
+        all_uuids = set(online_devices + busy_devices)
+
+        result = {}
+        for device_uuid in all_uuids:
+            online_flag = False
+            busy_flag = False
+            if device_uuid in online_devices:
+                online_flag = True
+            if device_uuid in busy_devices:
+                busy_flag = True
+
+            result[device_uuid] = {'online': online_flag, 'busy': busy_flag}
+        return result
 
     def setup_module_pubsub(self):
         pass
@@ -173,7 +239,10 @@ class UserManagerModule(BaseModule):
                 self.user_registry.user_leave_session(user, session_uuid)
                 user_event.type = UserEvent.USER_LEFT_SESSION
 
-            # TODO: Get full name
+            # Get full name
+            from libtera.db.models.TeraUser import TeraUser
+            user_data = TeraUser.get_user_by_uuid(user)
+            user_event.user_fullname = user_data.get_fullname()
             self.send_event_message(user_event, self.event_topic_name())
 
     def set_participants_in_session(self, session_uuid: str, participant_uuids: list, in_session: bool):
@@ -191,6 +260,11 @@ class UserManagerModule(BaseModule):
                 participant_event.type = ParticipantEvent.PARTICIPANT_LEFT_SESSION
 
             # TODO: Get others infos for that participant
+            from libtera.db.models.TeraParticipant import TeraParticipant
+            part_data = TeraParticipant.get_participant_by_uuid(participant)
+            participant_event.participant_name = part_data.participant_name
+            participant_event.participant_project_name = part_data.participant_project.project_name
+            participant_event.participant_site_name = part_data.participant_project.project_site.site_name
             self.send_event_message(participant_event, self.event_topic_name())
 
     def set_devices_in_session(self, session_uuid: str, device_uuids: list, in_session: bool):
@@ -207,7 +281,9 @@ class UserManagerModule(BaseModule):
                 self.device_registry.device_leave_session(device, session_uuid)
                 device_event.type = DeviceEvent.DEVICE_LEFT_SESSION
 
-            # TODO: Get others infos for that device
+            from libtera.db.models.TeraDevice import TeraDevice
+            device_data = TeraDevice.get_device_by_uuid(device)
+            device_event.device_name = device_data.device_name
             self.send_event_message(device_event, self.event_topic_name())
 
     def handle_join_session_event(self, join_event: JoinSessionEvent):

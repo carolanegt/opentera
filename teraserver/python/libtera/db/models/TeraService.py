@@ -24,6 +24,7 @@ class TeraService(db.Model, BaseModel):
     service_default_config = db.Column(db.String, nullable=True, default='{}')
 
     service_roles = db.relationship('TeraServiceRole')
+    service_projects = db.relationship('TeraServiceProject')
 
     def __init__(self):
         pass
@@ -38,7 +39,7 @@ class TeraService(db.Model, BaseModel):
         if ignore_fields is None:
             ignore_fields = []
 
-        ignore_fields.extend(['service_roles', 'service_system'])
+        ignore_fields.extend(['service_roles', 'service_projects', 'service_system'])
 
         if minimal:
             ignore_fields.extend(['service_default_config'])
@@ -50,6 +51,11 @@ class TeraService(db.Model, BaseModel):
             for role in self.service_roles:
                 roles.append(role.to_json())
             json_service['service_roles'] = roles
+            # Add projects for that service
+            service_projects = []
+            for sp in self.service_projects:
+                service_projects.append(sp.to_json())
+            json_service['service_projects'] = service_projects
 
         if not self.service_endpoint_user:
             del json_service['service_endpoint_user']
@@ -107,7 +113,7 @@ class TeraService(db.Model, BaseModel):
         return TeraService.get_service_by_key('OpenTeraServer')
 
     @staticmethod
-    def create_defaults():
+    def create_defaults(test=False):
         new_service = TeraService()
         new_service.service_uuid = '00000000-0000-0000-0000-000000000001'
         new_service.service_key = 'OpenTeraServer'
@@ -177,8 +183,11 @@ class TeraService(db.Model, BaseModel):
         new_service.service_hostname = 'localhost'
         new_service.service_port = 4070
         new_service.service_endpoint = '/'
-        new_service.service_endpoint_participant = '/participant'
         new_service.service_clientendpoint = '/rehab'
+        new_service.service_endpoint_participant = '/participant'
+        # Not yet implemented...
+        # new_service.service_endpoint_user = '/user'
+        # new_service.service_endpoint_device = '/device'
         new_service.service_enabled = True
         new_service.service_editable_config = True
         db.session.add(new_service)

@@ -10,15 +10,14 @@ import datetime
 
 class TeraDevice(db.Model, BaseModel):
     __tablename__ = 't_devices'
-    secret = None
     id_device = db.Column(db.Integer, db.Sequence('id_device_sequence'), primary_key=True, autoincrement=True)
     # id_site = db.Column(db.Integer, db.ForeignKey("t_sites.id_site", ondelete='cascade'), nullable=True)
     # id_session_type = db.Column(db.Integer, db.ForeignKey("t_sessions_types.id_session_type",
     #                                                       ondelete='set null'), nullable=True)
     device_uuid = db.Column(db.String(36), nullable=False, unique=True)
     device_name = db.Column(db.String, nullable=False)
-    device_type = db.Column(db.Integer, db.ForeignKey('t_devices_types.id_device_type', ondelete='cascade'),
-                            nullable=False)
+    id_device_type = db.Column(db.Integer, db.ForeignKey('t_devices_types.id_device_type', ondelete='cascade'),
+                               nullable=False)
     id_device_subtype = db.Column(db.Integer, db.ForeignKey('t_devices_subtypes.id_device_subtype',
                                                             ondelete='set null'), nullable=True)
     device_token = db.Column(db.String, nullable=True, unique=True)
@@ -28,7 +27,7 @@ class TeraDevice(db.Model, BaseModel):
     device_config = db.Column(db.String, nullable=True)
     device_infos = db.Column(db.String, nullable=True)
     device_notes = db.Column(db.String, nullable=True)
-    device_lastonline = db.Column(db.TIMESTAMP, nullable=True)
+    device_lastonline = db.Column(db.TIMESTAMP(timezone=True), nullable=True)
 
     # device_sites = db.relationship("TeraDeviceSite")
     # device_projects = db.relationship('TeraDeviceProject', cascade='delete')
@@ -43,21 +42,21 @@ class TeraDevice(db.Model, BaseModel):
 
     authenticated = False
 
-    def __init__(self):
-        self.secret = TeraServerSettings.get_server_setting_value(TeraServerSettings.ServerDeviceTokenKey)
-        if self.secret is None:
-            # Fallback - should not happen
-            self.secret = 'TeraDeviceSecret'
+    # def __init__(self):
+    #     self.secret = TeraServerSettings.get_server_setting_value(TeraServerSettings.ServerDeviceTokenKey)
+    #     if self.secret is None:
+    #         # Fallback - should not happen
+    #         self.secret = 'TeraDeviceSecret'
 
     def to_json(self, ignore_fields=None, minimal=False):
         if ignore_fields is None:
             ignore_fields = []
 
-        ignore_fields += ['device_projects', 'device_participants', 'device_sessions', 'device_certificate', 'secret',
+        ignore_fields += ['device_projects', 'device_participants', 'device_sessions', 'device_certificate',
                           'device_subtype', 'authenticated', 'device_assets']
 
         if minimal:
-            ignore_fields += ['device_type', 'device_onlineable', 'device_config', 'device_notes',
+            ignore_fields += ['device_onlineable', 'device_config', 'device_notes',
                               'device_lastonline', 'device_infos',  'device_token']
 
         device_json = super().to_json(ignore_fields=ignore_fields)
@@ -168,50 +167,51 @@ class TeraDevice(db.Model, BaseModel):
             return TeraDevice.query.filter_by(device_enabled=True).join(TeraDevice.device_participants).all()
 
     @staticmethod
-    def create_defaults():
-        device = TeraDevice()
-        device.device_name = 'Apple Watch #W05P1'
-        # Forcing uuid for tests
-        device.device_uuid = 'b707e0b2-e649-47e7-a938-2b949c423f73'  # str(uuid.uuid4())
-        device.device_type = TeraDeviceType.get_device_type_by_key('capteur').id_device_type
-        # device.create_token()
-        device.device_enabled = True
-        device.device_onlineable = True
-        # device.device_site = TeraSite.get_site_by_sitename('Default Site')
-        # device.device_participants = [TeraParticipant.get_participant_by_id(1)]
-        db.session.add(device)
+    def create_defaults(test=False):
+        if test:
+            device = TeraDevice()
+            device.device_name = 'Apple Watch #W05P1'
+            # Forcing uuid for tests
+            device.device_uuid = 'b707e0b2-e649-47e7-a938-2b949c423f73'  # str(uuid.uuid4())
+            device.id_device_type = TeraDeviceType.get_device_type_by_key('capteur').id_device_type
+            # device.create_token()
+            device.device_enabled = True
+            device.device_onlineable = True
+            # device.device_site = TeraSite.get_site_by_sitename('Default Site')
+            # device.device_participants = [TeraParticipant.get_participant_by_id(1)]
+            db.session.add(device)
 
-        device2 = TeraDevice()
-        device2.device_name = 'Kit Télé #1'
-        device2.device_uuid = str(uuid.uuid4())
-        device2.device_type = TeraDeviceType.get_device_type_by_key('videoconference').id_device_type
-        # device2.create_token()
-        device2.device_enabled = True
-        device2.device_onlineable = True
-        # device2.device_sites = [TeraSite.get_site_by_sitename('Default Site')]
-        # device2.device_participants = [TeraParticipant.get_participant_by_id(1),
-        #                               TeraParticipant.get_participant_by_id(2)]
-        db.session.add(device2)
+            device2 = TeraDevice()
+            device2.device_name = 'Kit Télé #1'
+            device2.device_uuid = str(uuid.uuid4())
+            device2.id_device_type = TeraDeviceType.get_device_type_by_key('videoconference').id_device_type
+            # device2.create_token()
+            device2.device_enabled = True
+            device2.device_onlineable = True
+            # device2.device_sites = [TeraSite.get_site_by_sitename('Default Site')]
+            # device2.device_participants = [TeraParticipant.get_participant_by_id(1),
+            #                               TeraParticipant.get_participant_by_id(2)]
+            db.session.add(device2)
 
-        device3 = TeraDevice()
-        device3.device_name = 'Robot A'
-        device3.device_uuid = str(uuid.uuid4())
-        device3.device_type = TeraDeviceType.get_device_type_by_key('robot').id_device_type
-        # device3.create_token()
-        device3.device_enabled = True
-        device3.device_onlineable = True
-        # device3.device_sites = [TeraSite.get_site_by_sitename('Default Site')]
-        # device3.device_participants = [TeraParticipant.get_participant_by_id(2)]
-        db.session.add(device3)
+            device3 = TeraDevice()
+            device3.device_name = 'Robot A'
+            device3.device_uuid = str(uuid.uuid4())
+            device3.id_device_type = TeraDeviceType.get_device_type_by_key('robot').id_device_type
+            # device3.create_token()
+            device3.device_enabled = True
+            device3.device_onlineable = True
+            # device3.device_sites = [TeraSite.get_site_by_sitename('Default Site')]
+            # device3.device_participants = [TeraParticipant.get_participant_by_id(2)]
+            db.session.add(device3)
 
-        db.session.commit()
+            db.session.commit()
 
-        # Must create token after devices are created since token contains id_device!
-        device.create_token()
-        device2.create_token()
-        device3.create_token()
+            # Must create token after devices are created since token contains id_device!
+            device.create_token()
+            device2.create_token()
+            device3.create_token()
 
-        db.session.commit()
+            db.session.commit()
 
     @classmethod
     def insert(cls, device):

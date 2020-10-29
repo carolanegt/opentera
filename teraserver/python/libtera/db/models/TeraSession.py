@@ -27,7 +27,7 @@ class TeraSession(db.Model, BaseModel):
                                    nullable=True)
 
     session_name = db.Column(db.String, nullable=False)
-    session_start_datetime = db.Column(db.TIMESTAMP, nullable=False)
+    session_start_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     session_duration = db.Column(db.Integer, nullable=False, default=0)
     session_status = db.Column(db.Integer, nullable=False)
     session_comments = db.Column(db.String, nullable=True)
@@ -64,7 +64,8 @@ class TeraSession(db.Model, BaseModel):
         if not minimal:
             # Append list of participants ids and names
             rval['session_participants'] = [{'id_participant': part.id_participant,
-                                             'participant_name': part.participant_name}
+                                             'participant_name': part.participant_name,
+                                             'id_project': part.id_project}
                                             for part in self.session_participants]
 
             # Append list of users ids and names
@@ -105,96 +106,97 @@ class TeraSession(db.Model, BaseModel):
         return {'id_session': self.id_session, 'session_uuid': self.session_uuid}
 
     @staticmethod
-    def create_defaults():
-        from libtera.db.models.TeraUser import TeraUser
-        from libtera.db.models.TeraDevice import TeraDevice
-        from libtera.db.models.TeraSessionType import TeraSessionType
-        from libtera.db.models.TeraParticipant import TeraParticipant
-        from libtera.db.models.TeraService import TeraService
+    def create_defaults(test=False):
+        if test:
+            from libtera.db.models.TeraUser import TeraUser
+            from libtera.db.models.TeraDevice import TeraDevice
+            from libtera.db.models.TeraSessionType import TeraSessionType
+            from libtera.db.models.TeraParticipant import TeraParticipant
+            from libtera.db.models.TeraService import TeraService
 
-        session_user = TeraUser.get_user_by_id(1)
-        session_user2 = TeraUser.get_user_by_id(2)
-        session_part = TeraParticipant.get_participant_by_name('Participant #1')
-        session_part2 = TeraParticipant.get_participant_by_name('Participant #2')
-        session_service = TeraService.get_service_by_key('VideoRehabService')
-        session_device = TeraDevice.get_device_by_id(2)
+            session_user = TeraUser.get_user_by_id(1)
+            session_user2 = TeraUser.get_user_by_id(2)
+            session_part = TeraParticipant.get_participant_by_name('Participant #1')
+            session_part2 = TeraParticipant.get_participant_by_name('Participant #2')
+            session_service = TeraService.get_service_by_key('VideoRehabService')
+            session_device = TeraDevice.get_device_by_id(2)
 
-        # Create user sessions
-        for i in range(8):
-            base_session = TeraSession()
-            base_session.session_creator_user = session_user
-            ses_type = random.randint(1, 4)
-            base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
-            base_session.session_name = "Séance #" + str(i+1)
-            base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
-            base_session.session_duration = random.randint(60, 4800)
-            ses_status = random.randint(0, 4)
-            base_session.session_status = ses_status
-            if i < 7:
-                base_session.session_participants = [session_part]
-            else:
-                base_session.session_participants = [session_part, session_part2]
-            if i < 4:
-                base_session.session_users = [base_session.session_creator_user]
-            else:
-                base_session.session_users = [base_session.session_creator_user, session_user2]
-            if i == 3:
-                base_session.session_devices = [session_device]
-            base_session.session_uuid = str(uuid.uuid4())
-            db.session.add(base_session)
+            # Create user sessions
+            for i in range(8):
+                base_session = TeraSession()
+                base_session.session_creator_user = session_user
+                ses_type = random.randint(1, 4)
+                base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
+                base_session.session_name = "Séance #" + str(i+1)
+                base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
+                base_session.session_duration = random.randint(60, 4800)
+                ses_status = random.randint(0, 4)
+                base_session.session_status = ses_status
+                if i < 7:
+                    base_session.session_participants = [session_part]
+                else:
+                    base_session.session_participants = [session_part, session_part2]
+                if i < 4:
+                    base_session.session_users = [base_session.session_creator_user]
+                else:
+                    base_session.session_users = [base_session.session_creator_user, session_user2]
+                if i == 3:
+                    base_session.session_devices = [session_device]
+                base_session.session_uuid = str(uuid.uuid4())
+                db.session.add(base_session)
 
-        # Create device sessions
-        for i in range(8):
-            base_session = TeraSession()
-            base_session.session_creator_device = TeraDevice.get_device_by_id(1)
-            ses_type = random.randint(1, 4)
-            base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
-            base_session.session_name = "Séance #" + str(i+1)
-            base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
-            base_session.session_duration = random.randint(60, 4800)
-            ses_status = random.randint(0, 4)
-            base_session.session_status = ses_status
-            if i < 7:
-                base_session.session_participants = [session_part]
-            else:
-                base_session.session_participants = [session_part, session_part2]
-            base_session.session_uuid = str(uuid.uuid4())
-            db.session.add(base_session)
+            # Create device sessions
+            for i in range(8):
+                base_session = TeraSession()
+                base_session.session_creator_device = TeraDevice.get_device_by_id(1)
+                ses_type = random.randint(1, 4)
+                base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
+                base_session.session_name = "Séance #" + str(i+1)
+                base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
+                base_session.session_duration = random.randint(60, 4800)
+                ses_status = random.randint(0, 4)
+                base_session.session_status = ses_status
+                if i < 7:
+                    base_session.session_participants = [session_part]
+                else:
+                    base_session.session_participants = [session_part, session_part2]
+                base_session.session_uuid = str(uuid.uuid4())
+                db.session.add(base_session)
 
-        # Create participant sessions
-        for i in range(8):
-            base_session = TeraSession()
-            base_session.session_creator_participant = TeraParticipant.get_participant_by_id(1)
-            ses_type = random.randint(1, 4)
-            base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
-            base_session.session_name = "Séance #" + str(i+1)
-            base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
-            base_session.session_duration = random.randint(60, 4800)
-            ses_status = random.randint(0, 4)
-            base_session.session_status = ses_status
-            base_session.session_participants = [base_session.session_creator_participant]
-            base_session.session_uuid = str(uuid.uuid4())
-            db.session.add(base_session)
+            # Create participant sessions
+            for i in range(8):
+                base_session = TeraSession()
+                base_session.session_creator_participant = TeraParticipant.get_participant_by_id(1)
+                ses_type = random.randint(1, 4)
+                base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
+                base_session.session_name = "Séance #" + str(i+1)
+                base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
+                base_session.session_duration = random.randint(60, 4800)
+                ses_status = random.randint(0, 4)
+                base_session.session_status = ses_status
+                base_session.session_participants = [base_session.session_creator_participant]
+                base_session.session_uuid = str(uuid.uuid4())
+                db.session.add(base_session)
 
-        # Create service sessions
-        for i in range(4):
-            base_session = TeraSession()
-            base_session.session_creator_service = session_service
-            ses_type = random.randint(1, 4)
-            base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
-            base_session.session_name = "Séance #" + str(i+1)
-            base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
-            base_session.session_duration = random.randint(60, 4800)
-            ses_status = random.randint(0, 4)
-            base_session.session_status = ses_status
-            if i < 3:
-                base_session.session_participants = [session_part]
-            else:
-                base_session.session_participants = [session_part, session_part2]
-            base_session.session_uuid = str(uuid.uuid4())
-            db.session.add(base_session)
+            # Create service sessions
+            for i in range(4):
+                base_session = TeraSession()
+                base_session.session_creator_service = session_service
+                ses_type = random.randint(1, 4)
+                base_session.session_session_type = TeraSessionType.get_session_type_by_id(ses_type)
+                base_session.session_name = "Séance #" + str(i+1)
+                base_session.session_start_datetime = datetime.now() - timedelta(days=random.randint(0, 30))
+                base_session.session_duration = random.randint(60, 4800)
+                ses_status = random.randint(0, 4)
+                base_session.session_status = ses_status
+                if i < 3:
+                    base_session.session_participants = [session_part]
+                else:
+                    base_session.session_participants = [session_part, session_part2]
+                base_session.session_uuid = str(uuid.uuid4())
+                db.session.add(base_session)
 
-        db.session.commit()
+            db.session.commit()
 
     @staticmethod
     def get_session_by_id(ses_id: int):
@@ -242,12 +244,6 @@ class TeraSession(db.Model, BaseModel):
         return user_uuid in user_uuids
 
     @staticmethod
-    def is_user_in_session(session_uuid: str, user_uuid: str) -> bool:
-        session = TeraSession.get_session_by_uuid(session_uuid)
-        user_uuids = [user.user_uuid for user in session.session_users]
-        return user_uuid in user_uuids
-
-    @staticmethod
     def is_device_in_session(session_uuid: str, device_uuid: str) -> bool:
         session = TeraSession.get_session_by_uuid(session_uuid)
         device_uuids = [device.device_uuid for device in session.session_devices]
@@ -259,11 +255,25 @@ class TeraSession(db.Model, BaseModel):
         participant_uuids = [participant.participant_uuid for participant in session.session_participants]
         return participant_uuid in participant_uuids
 
-    @staticmethod
-    def is_user_in_session(session_uuid: str, user_uuid: str) -> bool:
-        session = TeraSession.get_session_by_uuid(session_uuid)
-        user_uuids = [user.user_uuid for user in session.session_users]
-        return user_uuid in user_uuids
+    def has_user(self, id_user: int) -> bool:
+        user_ids = [user.id_user for user in self.session_users]
+        return id_user in user_ids
+
+    def has_device(self, id_device: int) -> bool:
+        device_ids = [device.id_device for device in self.session_devices]
+        return id_device in device_ids
+
+    def has_participant(self, id_participant: int) -> bool:
+        participant_ids = [participant.id_participant for participant in self.session_participants]
+        return id_participant in participant_ids
+
+    def get_associated_project_id(self):
+        project_id = None
+        if self.session_participants:
+            # Return project id for the first participant, since they should all be the same...
+            project_id = self.session_participants[0].id_project
+
+        return project_id
 
     # THIS SHOULD NOT BE USED ANYMORE, AS DELETES CAN'T OCCUR IF THERE'S STILL ASSOCIATED SESSIONS
     # @staticmethod

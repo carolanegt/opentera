@@ -115,9 +115,9 @@ class ServiceOpenTera(RedisClient):
                 # Return result (a json string)
                 self.publish(rpc_message.reply_to, json_data)
 
-        except:
+        except Exception as e:
             import sys
-            print('Error calling rpc method', message, sys.exc_info())
+            print('Error calling rpc method', message, sys.exc_info(), e)
             my_dict = {'method': rpc_message.method,
                        'id': rpc_message.id,
                        'pattern': pattern,
@@ -158,7 +158,7 @@ class ServiceOpenTera(RedisClient):
         any_message = messages.Any()
         any_message.Pack(event)
         message.events.extend([any_message])
-        self.publish(message.header.topic, message.SerializeToString())
+        return self.publish(message.header.topic, message.SerializeToString())
 
     def create_event_message(self, topic):
         event_message = messages.TeraEvent()
@@ -172,7 +172,7 @@ class ServiceOpenTera(RedisClient):
         any_message = messages.Any()
         any_message.Pack(event)
         message.data.extend([any_message])
-        self.publish(topic, message.SerializeToString())
+        return self.publish(topic, message.SerializeToString())
 
     def create_tera_message(self, src='', dest='', seq=0):
         tera_message = messages.TeraModuleMessage()

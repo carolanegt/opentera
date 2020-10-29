@@ -4,20 +4,18 @@ let socket = undefined;
 
 var currentConfig = {'currentVideoSourceIndex': -1,
                      'currentAudioSourceIndex': -1,
-                     'currentVideoSource2Index':-1,
-                     'currentAudioSource2Index':-1,
+                     'currentVideoSource2Index': -1,
+                     'currentAudioSource2Index': -1,
                      'video1Mirror': true};
 
 function connectSharedObject() {
     let baseUrl = "ws://localhost:12345";
     console.log("Connecting SharedObject socket at " + baseUrl + ".");
     socket = new WebSocket(baseUrl);
-
-    socket.onclose = sharedObjectSocketClosed;
-    socket.onerror = sharedObjectSocketError;
     socket.onopen = sharedObjectSocketOpened;
+    socket.onerror = sharedObjectSocketError;
+    socket.onclose = sharedObjectSocketClosed;
 }
-
 function sharedObjectSocketClosed(){
     showError("sharedObjectSocketClosed", "Shared object socket closed", false);
     teraConnected = false;
@@ -45,26 +43,23 @@ function setupSharedObjectCallbacks(channel){
     channel.objects.SharedObject.newAudioSource.connect(selectAudioSource);
     channel.objects.SharedObject.newDataForward.connect(forwardData);
     channel.objects.SharedObject.newSecondSources.connect(selectSecondarySources);
+    channel.objects.SharedObject.setLocalMirrorSignal.connect(setLocalMirror);
 
-    //Request contact info...
-    channel.objects.SharedObject.getContactInformation();
+    //Request settings from client
+    channel.objects.SharedObject.getAllSettings(function(settings) {
+        settings = JSON.parse(settings);
+        //console.log(settings);
+        updateContact(settings.contactInfo);
+        selectAudioSource(settings.audio);
+        selectVideoSource(settings.video);
+        setLocalMirror(settings.mirror);
+        selectSecondarySources(settings.secondAudioVideo);
+        ptz = JSON.parse(settings.ptz);
+        setPTZCapabilities(localContact.uuid, ptz.zoom, ptz.presets, ptz.settings);
 
-    // Request current audio source
-    channel.objects.SharedObject.getCurrentAudioSource();
-
-    // Request current camera
-    channel.objects.SharedObject.getCurrentVideoSource();
-
-    // Request secondary sources
-    channel.objects.SharedObject.getSecondSources();
-
-    // Mirror effect
-    if (channel.objects.SharedObject.getLocalMirror){
-        channel.objects.SharedObject.setLocalMirrorSignal.connect(setLocalMirror);
-        channel.objects.SharedObject.getLocalMirror();
-    }else
-        console.log("No mirror settings.");
-
+        // Connect to signaling server now that we got all the settings
+        connect();
+    });
 }
 
 function updateContact(contact)
@@ -75,8 +70,8 @@ function updateContact(contact)
     //localContact.peerid = local_peerid;
 
     localPTZCapabilities.uuid = localContact.uuid;
-    setTitle(local, 1, localContact.name);
-    setTitle(local, 2, localContact.name);
+    setTitle(true, 1, localContact.name);
+    setTitle(true, 2, localContact.name);
 }
 
 function setLocalMirror(mirror){

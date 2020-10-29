@@ -23,44 +23,45 @@ class TeraUserUserGroup(db.Model, BaseModel):
         return rval
 
     @staticmethod
-    def create_defaults():
-        from libtera.db.models.TeraUser import TeraUser
-        from libtera.db.models.TeraUserGroup import TeraUserGroup
-        user1 = TeraUser.get_user_by_username('siteadmin')
-        user2 = TeraUser.get_user_by_username('user')
-        user3 = TeraUser.get_user_by_username('user2')
-        user4 = TeraUser.get_user_by_username('user3')
-        group1 = TeraUserGroup.get_user_group_by_group_name("Users - Projects 1 & 2")
-        group2 = TeraUserGroup.get_user_group_by_group_name("Admins - Project 1")
-        group3 = TeraUserGroup.get_user_group_by_group_name("Admins - Default Site")
-        group4 = TeraUserGroup.get_user_group_by_group_name("Users - Project 1")
+    def create_defaults(test=False):
+        if test:
+            from libtera.db.models.TeraUser import TeraUser
+            from libtera.db.models.TeraUserGroup import TeraUserGroup
+            user1 = TeraUser.get_user_by_username('siteadmin')
+            user2 = TeraUser.get_user_by_username('user')
+            user3 = TeraUser.get_user_by_username('user2')
+            user4 = TeraUser.get_user_by_username('user3')
+            group1 = TeraUserGroup.get_user_group_by_group_name("Users - Projects 1 & 2")
+            group2 = TeraUserGroup.get_user_group_by_group_name("Admins - Project 1")
+            group3 = TeraUserGroup.get_user_group_by_group_name("Admins - Default Site")
+            group4 = TeraUserGroup.get_user_group_by_group_name("Users - Project 1")
 
-        user_ug = TeraUserUserGroup()
-        user_ug.user_user_group_user = user1
-        user_ug.user_user_group_user_group = group3
-        db.session.add(user_ug)
+            user_ug = TeraUserUserGroup()
+            user_ug.user_user_group_user = user1
+            user_ug.user_user_group_user_group = group3
+            db.session.add(user_ug)
 
-        user_ug = TeraUserUserGroup()
-        user_ug.user_user_group_user = user2
-        user_ug.user_user_group_user_group = group1
-        db.session.add(user_ug)
+            user_ug = TeraUserUserGroup()
+            user_ug.user_user_group_user = user2
+            user_ug.user_user_group_user_group = group1
+            db.session.add(user_ug)
 
-        user_ug = TeraUserUserGroup()
-        user_ug.user_user_group_user = user3
-        user_ug.user_user_group_user_group = group4
-        db.session.add(user_ug)
+            user_ug = TeraUserUserGroup()
+            user_ug.user_user_group_user = user3
+            user_ug.user_user_group_user_group = group4
+            db.session.add(user_ug)
 
-        user_ug = TeraUserUserGroup()
-        user_ug.user_user_group_user = user3
-        user_ug.user_user_group_user_group = group3
-        db.session.add(user_ug)
+            user_ug = TeraUserUserGroup()
+            user_ug.user_user_group_user = user3
+            user_ug.user_user_group_user_group = group3
+            db.session.add(user_ug)
 
-        user_ug = TeraUserUserGroup()
-        user_ug.user_user_group_user = user4
-        user_ug.user_user_group_user_group = group2
-        db.session.add(user_ug)
+            user_ug = TeraUserUserGroup()
+            user_ug.user_user_group_user = user4
+            user_ug.user_user_group_user_group = group2
+            db.session.add(user_ug)
 
-        db.session.commit()
+            db.session.commit()
 
     @staticmethod
     def get_user_user_group_by_id(user_user_group_id: int):

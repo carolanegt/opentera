@@ -65,13 +65,20 @@ class VideoRehabService(ServiceOpenTera):
     def send_join_message(self, session_info, join_msg: str = gettext('Join me!'), target_users: list = None,
                           target_participants: list = None, target_devices: list = None):
 
+        self.logger.log_info(self.config['name'],
+                             'send_join_message',
+                             session_info['session_uuid'],
+                             target_users,
+                             target_participants,
+                             target_devices)
+
         users = session_info['session_users']
         participants = session_info['session_participants']
         devices = session_info['session_devices']
         parameters = session_info['session_parameters']
 
         join_message = messages.JoinSessionEvent()
-        join_message.session_url = session_info['session_url']
+
         join_message.session_creator_name = session_info['session_creator_user']
         join_message.session_uuid = session_info['session_uuid']
         for user_uuid in users:
@@ -93,12 +100,15 @@ class VideoRehabService(ServiceOpenTera):
             target_participants = participants
 
         for user_uuid in target_users:
+            join_message.session_url = session_info['session_url_users']
             self.send_event_message(join_message, 'websocket.user.'
                                     + user_uuid + '.events')
         for participant_uuid in target_participants:
+            join_message.session_url = session_info['session_url_participants']
             self.send_event_message(join_message, 'websocket.participant.'
                                     + participant_uuid + '.events')
         for device_uuid in target_devices:
+            join_message.session_url = session_info['session_url_devices']
             self.send_event_message(join_message, 'websocket.device.'
                                     + device_uuid + '.events')
 
@@ -148,21 +158,6 @@ class VideoRehabService(ServiceOpenTera):
 
                     self.send_join_message(session_info=session_info, target_devices=[], target_participants=[],
                                            target_users=[event.user_uuid])
-                    # join_message = messages.JoinSessionEvent()
-                    #
-                    # # Fill information for join_message
-                    # join_message.session_url = session_info['session_url']
-                    # join_message.session_creator_name = session_info['session_creator_user']
-                    # join_message.session_uuid = session_info['session_uuid']
-                    # for user_uuid in session_info['session_users']:
-                    #     join_message.session_users.extend([user_uuid])
-                    # for participant_uuid in session_info['session_participants']:
-                    #     join_message.session_participants.extend([participant_uuid])
-                    # for device_uuid in session_info['session_devices']:
-                    #     join_message.session_devices.extend([device_uuid])
-                    #
-                    # # Send message
-                    # self.send_event_message(join_message, 'websocket.user.' + event.user_uuid + '.events')
 
                 elif event.type == messages.UserEvent.USER_DISCONNECTED:
                     # Terminate session if last user ?
@@ -188,22 +183,6 @@ class VideoRehabService(ServiceOpenTera):
 
                     self.send_join_message(session_info=session_info, target_devices=[],
                                            target_participants=[event.participant_uuid], target_users=[])
-                    # join_message = messages.JoinSessionEvent()
-                    #
-                    # # Fill information for join_message
-                    # join_message.session_url = session_info['session_url']
-                    # join_message.session_creator_name = session_info['session_creator_user']
-                    # join_message.session_uuid = session_info['session_uuid']
-                    # for user_uuid in session_info['session_users']:
-                    #     join_message.session_users.extend([user_uuid])
-                    # for participant_uuid in session_info['session_participants']:
-                    #     join_message.session_participants.extend([participant_uuid])
-                    # for device_uuid in session_info['session_devices']:
-                    #     join_message.session_devices.extend([device_uuid])
-                    #
-                    # # Send message
-                    # self.send_event_message(join_message, 'websocket.participant.' +
-                    # event.participant_uuid + '.events')
 
                 elif event.type == messages.ParticipantEvent.PARTICIPANT_DISCONNECTED:
                     # Nothing to do?
@@ -224,22 +203,6 @@ class VideoRehabService(ServiceOpenTera):
 
                     self.send_join_message(session_info=session_info, target_devices=[event.device_uuid],
                                            target_participants=[], target_users=[])
-
-                    # join_message = messages.JoinSessionEvent()
-                    #
-                    # # Fill information for join_message
-                    # join_message.session_url = session_info['session_url']
-                    # join_message.session_creator_name = session_info['session_creator_user']
-                    # join_message.session_uuid = session_info['session_uuid']
-                    # for user_uuid in session_info['session_users']:
-                    #     join_message.session_users.extend([user_uuid])
-                    # for participant_uuid in session_info['session_participants']:
-                    #     join_message.session_participants.extend([participant_uuid])
-                    # for device_uuid in session_info['session_devices']:
-                    #     join_message.session_devices.extend([device_uuid])
-                    #
-                    # # Send message
-                    # self.send_event_message(join_message, 'websocket.device.' + event.device_uuid + '.events')
 
                 elif event.type == messages.DeviceEvent.DEVICE_DISCONNECTED:
                     # Nothing to do?
@@ -267,38 +230,6 @@ class VideoRehabService(ServiceOpenTera):
 
         if session_info:
             self.send_join_message(session_info=session_info)
-
-            # users = session_info['session_users']
-            # participants = session_info['session_participants']
-            # devices = session_info['session_devices']
-            # parameters = session_info['session_parameters']
-            #
-            # # Create event
-            #
-            # joinMessage = messages.JoinSessionEvent()
-            # joinMessage.session_url = session_info['session_url']
-            # joinMessage.session_creator_name = session_info['session_creator_user']
-            # joinMessage.session_uuid = session_info['session_uuid']
-            # for user_uuid in users:
-            #     joinMessage.session_users.extend([user_uuid])
-            # for participant_uuid in participants:
-            #     joinMessage.session_participants.extend([participant_uuid])
-            # for device_uuid in devices:
-            #     joinMessage.session_devices.extend([device_uuid])
-            # joinMessage.join_msg = gettext('Join Session')
-            # joinMessage.session_parameters = parameters
-            # joinMessage.service_uuid = self.service_uuid
-            #
-            # # Send invitations (as events) for users, participants and devices
-            # for user_uuid in users:
-            #     self.send_event_message(joinMessage, 'websocket.user.'
-            #                             + user_uuid + '.events')
-            # for participant_uuid in participants:
-            #     self.send_event_message(joinMessage, 'websocket.participant.'
-            #                             + participant_uuid + '.events')
-            # for device_uuid in devices:
-            #     self.send_event_message(joinMessage, 'websocket.device.'
-            #                             + device_uuid + '.events')
 
     def setup_rpc_interface(self):
         # TODO Update rpc interface
@@ -378,10 +309,18 @@ class VideoRehabService(ServiceOpenTera):
 
         # Get additional "start" arguments
         parameters = session_manage_args['parameters']
-        participants = session_manage_args['session_participants']
-        users = session_manage_args['session_users']
-        # TODO handle devices
-        devices = []
+        if 'session_participants' in session_manage_args:
+            participants = session_manage_args['session_participants']
+        else:
+            participants = []
+        if 'session_users' in session_manage_args:
+            users = session_manage_args['session_users']
+        else:
+            users = []
+        if 'session_devices' in session_manage_args:
+            devices = session_manage_args['session_devices']
+        else:
+            devices = []
 
         # Call service API to create session
         api_response = None
@@ -397,8 +336,8 @@ class VideoRehabService(ServiceOpenTera):
 
             api_response = self.post_to_opentera('/api/service/sessions', api_req)
         else:
-            api_response = self.get_from_opentera('/api/service/sessions', 'id_session=' + str(id_session) +
-                                                  '&with_events=1')
+            api_response = self.get_from_opentera('/api/service/sessions', {'id_session': str(id_session),
+                                                                            'with_events': True})
 
         if api_response.status_code == 200:
 
@@ -446,7 +385,9 @@ class VideoRehabService(ServiceOpenTera):
                 return {'status': 'error', 'error_text': gettext('Cannot create process')}
 
             # Add URL to session_info
-            session_info['session_url'] = process_info['url']
+            session_info['session_url_users'] = process_info['url_users']
+            session_info['session_url_participants'] = process_info['url_participants']
+            session_info['session_url_devices'] = process_info['url_devices']
 
             # Keep session info for future use
             self.sessions[session_info['id_session']] = session_info
@@ -485,14 +426,14 @@ class VideoRehabService(ServiceOpenTera):
 
             for session_event in session_info['session_events']:
                 if session_event['id_session_event_type'] == 3:  # START event
-                    time_diff = datetime.now() - datetime.strptime(session_event['session_event_datetime'],
-                                                                   '%Y-%m-%dT%H:%M:%S.%f')
+                    time_diff = datetime.now() - datetime.fromisoformat(session_event['session_event_datetime']).\
+                        replace(tzinfo=None)
                     duration = int(time_diff.total_seconds())
 
             # Default duration
             if duration == 0:
-                time_diff = datetime.now() - datetime.strptime(
-                    session_info['session_start_datetime'], '%Y-%m-%dT%H:%M:%S.%f')
+                time_diff = datetime.now() - datetime.fromisoformat(session_info['session_start_datetime']).\
+                    replace(tzinfo=None)
                 duration = int(time_diff.total_seconds())
 
             # Add current session duration to the total
@@ -716,7 +657,7 @@ class VideoRehabService(ServiceOpenTera):
                         return {'status': 'error', 'error_text': gettext('Cannot create refused session event')}
 
             if 'participant_uuid' in parameters:
-                join_session_reply.user_uuid = parameters['participant_uuid']
+                join_session_reply.participant_uuid = parameters['participant_uuid']
                 if parameters['reply_code'] != messages.JoinSessionReplyEvent.REPLY_ACCEPTED:
                     session_info['session_participants'] = [item for item in session_info['session_participants']
                                                             if item != parameters['participant_uuid']]
@@ -730,7 +671,7 @@ class VideoRehabService(ServiceOpenTera):
                         return {'status': 'error', 'error_text': gettext('Cannot create refused session event')}
 
             if 'device_uuid' in parameters:
-                join_session_reply.user_uuid = parameters['device_uuid']
+                join_session_reply.device_uuid = parameters['device_uuid']
                 if parameters['reply_code'] != messages.JoinSessionReplyEvent.REPLY_ACCEPTED:
                     session_info['session_devices'] = [item for item in session_info['session_devices']
                                                        if item != parameters['device_uuid']]

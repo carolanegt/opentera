@@ -5,7 +5,6 @@ var localCapabilities = {'video2':false};
 
 // Control flags
 var deviceEnumCompleted = false;
-var initialSourceSelect = false;
 
 async function fillDefaultSourceList(){
     console.log("fillDefaultSourceList()");
@@ -16,29 +15,31 @@ async function fillDefaultSourceList(){
     try{
         await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
     }catch(err) {
-        showError("fillDefaultSourceList() - getUserMedia", err.name + " - " + err.message, true);
-        return;
+        showError("fillDefaultSourceList() - getUserMedia",
+            "Impossible d'accéder à la caméra ou au micro.<br><br>Le message d'erreur est:<br>" + err.name + " - " + err.message, true);
+        throw err;
     }
 
     try {
         let devices = await navigator.mediaDevices.enumerateDevices();
         devices.forEach(device => {
-            if (device.kind=="videoinput"){
+            if (device.kind === "videoinput"){
                 videoSources[videoSources.length] = device;
             }
-            if (device.kind=="audioinput"){
+            if (device.kind === "audioinput"){
                 audioSources[audioSources.length] = device;
             }
 
         });
     }catch(err) {
         showError("fillDefaultSourceList() - enumerateDevices", err.name + " - " + err.message, true);
-        return;
+        throw err;
     }
 
     deviceEnumCompleted = true;
-    /*if (!connected && (!teraConnected || (teraConnected && initialSourceSelect)))
-        connect();*/
+
+    selectDefaultSources();
+
 }
 
 function selectVideoSource(source){
@@ -53,7 +54,7 @@ function selectVideoSource(source){
         if (videoSources[i].label.includes(video.name)){
             console.log("Found source at: " + i);
             currentConfig.currentVideoSourceIndex = i;
-            updateLocalAudioVideoSource();
+            updateLocalAudioVideoSource(1);
             found = true;
             break;
         }
@@ -62,15 +63,9 @@ function selectVideoSource(source){
         if (video.index !== undefined){
             console.log("Selected by index.");
             currentConfig.currentVideoSourceIndex = video.index;
-            updateLocalAudioVideoSource();
+            updateLocalAudioVideoSource(1);
         }
     }
-
-    /*if (teraConnected && !connected && deviceEnumCompleted)
-        connect();*/
-
-    initialSourceSelect = true;
-
 }
 
 function selectAudioSource(source){
@@ -89,7 +84,7 @@ function selectAudioSource(source){
             console.log("Found source at: " + i);
 
             currentConfig.currentAudioSourceIndex = i;
-            updateLocalAudioVideoSource();
+            updateLocalAudioVideoSource(1);
             found = true;
             break;
         }
@@ -143,17 +138,18 @@ function selectSecondarySources(source){
     }
 
     if (sources.audio !== "" || sources.video !== ""){
-        showSecondaryLocalSourcesIcons(true, false);
+        //showSecondaryLocalSourcesIcons(true, false);
         localCapabilities.video2 = true;
     }else{
-        showSecondaryLocalSourcesIcons(false, false);
+        //showSecondaryLocalSourcesIcons(false, false);
         localCapabilities.video2 = false;
     }
     broadcastlocalCapabilities();
-    updateLocalAudioVideoSource();
+    //updateLocalAudioVideoSource(2);
 }
 
 function selectDefaultSources(){
+    console.log("Selecting default sources");
     if (currentConfig.currentVideoSourceIndex === -1){
         console.log("No video specified - looking for default...");
         let found = false;
@@ -176,4 +172,24 @@ function selectDefaultSources(){
     if (currentConfig.currentAudioSourceIndex === -1){
         currentConfig.currentAudioSourceIndex = 0; // Default audio
     }
+}
+
+
+function setCapabilities(peerid, video2){
+
+    console.log("Setting Capabilities: " + peerid + " = " + video2);
+    let cap = {'video2':video2};
+
+    if (peerid === local_peerid){
+        console.log(" -- Local ID - settings values.");
+        localCapabilities.video2 = video2;
+    }else{
+        console.log(" -- Remote ID received: " + peerid + ", I am " + local_peerid);
+        // Find and update capabilities in remoteContacts
+        let index = getContactIndexForPeerId(peerid);
+        if (index){
+            remoteContacts[index].capabilities = cap;
+        }
+    }
+
 }

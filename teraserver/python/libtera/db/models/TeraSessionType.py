@@ -20,12 +20,11 @@ class TeraSessionType(db.Model, BaseModel):
     id_service = db.Column(db.Integer, db.ForeignKey('t_services.id_service', ondelete='cascade'), nullable=True)
     session_type_name = db.Column(db.String, nullable=False, unique=False)
     session_type_online = db.Column(db.Boolean, nullable=False)
-    session_type_multi = db.Column(db.Boolean, nullable=False)
     session_type_config = db.Column(db.String, nullable=True)
     session_type_color = db.Column(db.String(7), nullable=False)
     session_type_category = db.Column(db.Integer, nullable=False)
 
-    # session_type_projects = db.relationship("TeraSessionTypeProject")
+    session_type_session_type_projects = db.relationship("TeraSessionTypeProject", passive_deletes=True)
     session_type_projects = db.relationship("TeraProject", secondary="t_sessions_types_projects",
                                             back_populates="project_session_types")
 
@@ -37,10 +36,12 @@ class TeraSessionType(db.Model, BaseModel):
         if ignore_fields is None:
             ignore_fields = []
         ignore_fields.extend(['session_type_projects', 'session_type_devices_types', 'SessionCategoryEnum',
-                              'session_type_service', 'session_type_sessions'])
+                              'session_type_service', 'session_type_sessions', 'session_type_session_type_projects'])
         if minimal:
-            ignore_fields.extend(['session_type_online', 'session_type_multi',
-                                  'session_type_profile', 'session_type_color', 'session_type_config'])
+            ignore_fields.extend(['session_type_online',
+                                  'session_type_profile',
+                                  'session_type_color',
+                                  'session_type_config'])
         rval = super().to_json(ignore_fields=ignore_fields)
 
         if not minimal:
@@ -51,7 +52,7 @@ class TeraSessionType(db.Model, BaseModel):
         return rval
 
     @staticmethod
-    def create_defaults():
+    def create_defaults(test=False):
         # from libtera.db.models.TeraProject import TeraProject
         # from libtera.db.models.TeraDeviceType import TeraDeviceType
         from libtera.db.models.TeraService import TeraService
@@ -60,7 +61,6 @@ class TeraSessionType(db.Model, BaseModel):
         video_session = TeraSessionType()
         video_session.session_type_name = "Suivi vidéo"
         video_session.session_type_online = True
-        video_session.session_type_multi = False
         video_session.session_type_config = ""
         video_session.session_type_color = "#00FF00"
         video_session.session_type_category = TeraSessionType.SessionCategoryEnum.SERVICE.value
@@ -73,7 +73,6 @@ class TeraSessionType(db.Model, BaseModel):
         sensor_session = TeraSessionType()
         sensor_session.session_type_name = "Données Capteur"
         sensor_session.session_type_online = False
-        sensor_session.session_type_multi = False
         sensor_session.session_type_config = ""
         sensor_session.session_type_color = "#0000FF"
         sensor_session.session_type_category = TeraSessionType.SessionCategoryEnum.FILETRANSFER.value
@@ -85,7 +84,6 @@ class TeraSessionType(db.Model, BaseModel):
         vsensor_session = TeraSessionType()
         vsensor_session.session_type_name = "Collecte données"
         vsensor_session.session_type_online = True
-        vsensor_session.session_type_multi = False
         vsensor_session.session_type_config = ""
         vsensor_session.session_type_color = "#00FFFF"
         # vsensor_session.session_type_projects = [type_project]
@@ -98,7 +96,6 @@ class TeraSessionType(db.Model, BaseModel):
         robot_session = TeraSessionType()
         robot_session.session_type_name = "Exercices individuels"
         robot_session.session_type_online = False
-        robot_session.session_type_multi = False
         robot_session.session_type_config = ""
         robot_session.session_type_color = "#FF00FF"
         # robot_session.session_type_projects = [type_project]
@@ -107,11 +104,26 @@ class TeraSessionType(db.Model, BaseModel):
         #     int(TeraDeviceType.DeviceTypeEnum.ROBOT.value))]
         db.session.add(robot_session)
 
+        bureau_session = TeraSessionType()
+        bureau_session.session_type_name = "Bureau Actif"
+        bureau_session.session_type_online = False
+        bureau_session.session_type_config = ""
+        bureau_session.session_type_color = "#FF00FF"
+        bureau_session.session_type_category = TeraSessionType.SessionCategoryEnum.SERVICE.value
+        # robot_session.session_type_uses_devices_types = [TeraDeviceType.get_device_type(
+        #     int(TeraDeviceType.DeviceTypeEnum.ROBOT.value))]
+        bureau_session.id_service = TeraService.get_service_by_key('BureauActif').id_service
+        db.session.add(bureau_session)
+
         db.session.commit()
 
     @staticmethod
     def get_session_type_by_id(ses_type_id: int):
         return TeraSessionType.query.filter_by(id_session_type=ses_type_id).first()
+
+    @staticmethod
+    def get_session_types_for_service(id_service: int):
+        return TeraSessionType.query.filter_by(id_service=id_service).all()
 
     @staticmethod
     def get_category_name(category: SessionCategoryEnum):

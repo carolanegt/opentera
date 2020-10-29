@@ -3,12 +3,24 @@ html,body {
 	overflow: hidden;
 }
 
+.h-20 {
+	height: 20%;
+}
+
 .h-33 {
 	height: 33%;
 }
 
+.h-40 {
+	height: 40%;
+}
+
 .h-67 {
 	height: 67%;
+}
+
+.h-80 {
+	height: 80%;
 }
 
 .videoView{
@@ -53,6 +65,20 @@ video {
 	background-color: lightblue;
 }
 
+.modal-header-error{
+	background-color: #ab0909;
+	color: white;
+}
+
+.modal-body-error{
+	background-color: white;
+	color: black;
+}
+
+.modal-footer-error{
+	background-color: #ab0909;
+}
+
 .overlay-top-left {
 	position: relative;
 	/*width: 100%;
@@ -69,15 +95,16 @@ video {
 	position: relative;
 	/*width: 10%;
 	max-width:48px;
-	left: -40px;*/
-	height: 100%;
+	left: -40px;
 	max-height: 24px;
 	top:24px;
-	align: right;
 	background-color: rgba(0,0,0,0.5);
+	padding-right: 20px;
+	*/
+	margin-top: 10px;
+	height: 100%;
 	float: right;
 	z-index: 3;
-	padding-right: 20px;
 }
 
 .overlay-left {
@@ -96,9 +123,9 @@ video {
 	position: absolute;
 	height: 100%;
 	max-height: 64px;
-	bottom: 0px;
-	right:0px;
-	align: right;
+	bottom: 0;
+	right: 0;
+	margin-right: 10px;
 	/*background-color: rgba(0,0,0,0.5);
 	padding-right: 20px;
 	width: 64px;
@@ -106,18 +133,36 @@ video {
 	float: right;
 	z-index: 3;
 
-	/*position: absolute;
-    bottom: 0px;
-    height: 10%;
-    max-height: 48px;
-    width: 100%;
-    padding: 5px;
-    background-color: rgba(0,0,0,0.5);
+}
 
-    float: right;
-    z-index: 3;
-    display: inline;*/
+.overlay-top-center {
+	position: relative;
+	margin: auto;
+	text-align: center;
+	z-index: 3;
+}
 
+.tool-icon{
+	padding: 10px;
+	text-align: center;
+}
+
+.chrono{
+	background-color: rgba(100,100,100,0.75);
+	color: white;
+	font-size: 1.5vw;
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: 10px;
+}
+
+.chrono-large{
+	background-color: rgba(100,100,100,0.75);
+	color: white;
+	font-size: 3vw;
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: 10px;
 }
 
 
@@ -128,11 +173,11 @@ video {
 			z-index: 2;
 			top: 0;
 			left: 0;
-			margin: 0px;
+			margin: 0;
 			background-color: rgba(0,0,0,0);
 			overflow-x: hidden;
 			display: block;
-			//transition: height 0.5s;
+			/*transition: height 0.5s;*/
 		}
 
 
@@ -141,8 +186,8 @@ video {
 		
 		.overlay-right {
 			position: absolute;
-			right: 0px;
-			top: 0px;
+			right: 0;
+			top: 0;
 			width: 10%;
 			max-width: 48px;
 			height: 95%;
@@ -164,20 +209,7 @@ video {
 			top: 50%;
 		}
 		
-		.overlay-top-center {
-			position: absolute;
-			left: 50%;
-			top: 26px;
-			height: 10%;
-			max-height: 48px;			
-			//padding: 5px;
-			transform: translate(-50%, 0%);
-			margin: auto;
-			//background-color: rgba(0,0,0,0.5);
-			height: 48px;
-			width: 100%;
-			text-align: center;
-		}
+
 		
 		.overlay-bottom-center {
 			position: absolute;
@@ -185,8 +217,8 @@ video {
 			bottom: 5px;
 			transform: translate(-50%, 0%);
 			margin: auto;
-			//background-color: rgba(0,0,0,0.5);
-			//height: 48px;
+			/*background-color: rgba(0,0,0,0.5);
+			height: 48px;*/
 			width: 100%;
 			text-align: center;
 			z-index: 3;
@@ -195,7 +227,7 @@ video {
 		
 		.overlay-bottom-left {
 			position: absolute;
-			bottom: 0px;
+			bottom: 0;
 			height: 10%;
 			max-height: 48px;
 			width: 100%;
@@ -211,7 +243,7 @@ video {
 			font-size: 36px;
 			color: #818181;
 			display: block;
-			//transition: 0.3s;
+			/*transition: 0.3s;*/
 		}
 
 		.overlay a:hover, .overlay a:focus {
@@ -224,94 +256,11 @@ video {
 			right: 45px;
 			font-size: 60px;
 		}
-		
-		.titre {
-			position: absolute;
-			left: 50%;
-			top: 0px;
-			width:100%;
-			text-align: center;
-			transform: translate(-50%, 0%);
-			margin: 0 auto;
-			background-color: rgba(0,0,40,0.5);
-			height: 24px;
-			line-height: 24px;
-			z-index: 3;
-			font-size:14pt;
-			//pointer-events: none;
-		}
-		
-		.minivideo {
-			width: 40%;
-			height: 40%;
-			
-			//position: relative;
-			position: absolute;
 
-			z-index: 3;
-			right: 20px;
-			top: 30px;
-			
-			display: inline-block;
-			align: left;
-			float: left;
-
-			background-color: rgba(0,0,0,0);
-			//background-color: black;
-			
-			
-		}
-		
-		.minispeaker {
-			width: 100px;
-			height: 100px;
-			
-			position: relative;
-
-			z-index: 3;
-			right: 0px;
-			top: 30px;
-			
-			display: inline;
-			align: left;
-			float: left;
-
-			background-color: rgba(0,0,0,0);
-			//background-color: black;
-			
-			
-		}
-		
-		.minicontrols {
-			position: relative;
-			z-index: 4;
-			top: 20px;
-			left: -10px;
-			height: 24px;
-			display: inline;
-			background-color: rgba(0,0,0,0.5);
-			
-		}
-
-		.button1 {
-			/*border-radius: 5px;
-			background-color: white;
-			width: 20px;
-			height: 20px;
-			top:0;*/
-			background-color: white;
-			border-radius: 5px;
-			border: none;
-			color: black;
-			padding: 0px 0px;
-			width: 20px;
-			height: 20px;
-			text-align: center;
-			text-decoration: none;
-			display: inline-block;
-			font-size: 12px;
-			vertical-align:top;
-			cursor:pointer;	
-			
-		}
-		
+.videoMirror {
+	-webkit-transform: scaleX(-1);
+	-moz-transform: scaleX(-1);
+	-ms-transform: scaleX(-1);
+	-o-transform: scaleX(-1);
+	transform: scaleX(-1);
+}

@@ -38,29 +38,30 @@ class TeraUserPreference(db.Model, BaseModel):
         return TeraUserPreference.query.filter_by(id_user=user_id, user_preference_app_tag=app_tag).first()
 
     @staticmethod
-    def create_defaults():
-        from libtera.db.models.TeraUser import TeraUser
+    def create_defaults(test=False):
 
-        super_admin = TeraUser.get_user_by_username('admin')
-        site_admin = TeraUser.get_user_by_username('siteadmin')
+        if test:
+            from libtera.db.models.TeraUser import TeraUser
+            super_admin = TeraUser.get_user_by_username('admin')
+            site_admin = TeraUser.get_user_by_username('siteadmin')
 
-        new_pref = TeraUserPreference()
-        new_pref.id_user = super_admin.id_user
-        new_pref.user_preference_app_tag = 'openteraplus'
-        new_pref.user_preference_preference = '{"language": "fr", "notification_sounds": true}'
-        db.session.add(new_pref)
+            new_pref = TeraUserPreference()
+            new_pref.id_user = super_admin.id_user
+            new_pref.user_preference_app_tag = 'openteraplus'
+            new_pref.user_preference_preference = '{"language": "fr", "notification_sounds": true}'
+            db.session.add(new_pref)
 
-        new_pref = TeraUserPreference()
-        new_pref.id_user = site_admin.id_user
-        new_pref.user_preference_app_tag = 'openteraplus'
-        new_pref.user_preference_preference = '{"language": "en", "notification_sounds": false}'
-        db.session.add(new_pref)
+            new_pref = TeraUserPreference()
+            new_pref.id_user = site_admin.id_user
+            new_pref.user_preference_app_tag = 'openteraplus'
+            new_pref.user_preference_preference = '{"language": "en", "notification_sounds": false}'
+            db.session.add(new_pref)
 
-        new_pref = TeraUserPreference()
-        new_pref.id_user = super_admin.id_user
-        new_pref.user_preference_app_tag = 'anotherapp'
-        new_pref.user_preference_preference = '{"gui_style": 1, "auto_save": false}'
-        db.session.add(new_pref)
+            new_pref = TeraUserPreference()
+            new_pref.id_user = super_admin.id_user
+            new_pref.user_preference_app_tag = 'anotherapp'
+            new_pref.user_preference_preference = '{"gui_style": 1, "auto_save": false}'
+            db.session.add(new_pref)
 
     @staticmethod
     def insert_or_update_or_delete_user_preference(user_id: int, app_tag: str, prefs: str):
