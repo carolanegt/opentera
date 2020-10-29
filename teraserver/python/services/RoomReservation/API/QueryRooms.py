@@ -4,6 +4,8 @@ from modules.LoginModule.LoginModule import user_multi_auth
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
+
+from services.RoomReservation.AccessManager import AccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager
@@ -24,11 +26,11 @@ class QueryRooms(Resource):
         Resource.__init__(self, _api, *args, **kwargs)
         self.module = kwargs.get('flaskModule', None)
 
-    @user_multi_auth.login_required
     @api.expect(get_parser)
     @api.doc(description='Get rooms information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of rooms',
                         500: 'Database error'})
+    @AccessManager.token_required
     def get(self):
         parser = get_parser
 
