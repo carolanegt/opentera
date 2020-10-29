@@ -3,7 +3,7 @@ from services.RoomReservation.libroomreservation.db.Base import db, BaseModel
 
 class RoomReservationRoom(db.Model, BaseModel):
     __tablename__ = "t_rooms"
-    id_room = db.Column(db.Integer, db.Sequence('id_data_sequence'), primary_key=True, autoincrement=True)
+    id_room = db.Column(db.Integer, db.Sequence('id_room_sequence'), primary_key=True, autoincrement=True)
     id_site = db.Column(db.Integer, nullable=False)
     room_name = db.Column(db.String, nullable=False)
 

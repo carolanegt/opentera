@@ -103,7 +103,7 @@ class FlaskModule(BaseModule):
         from .API.QueryRooms import QueryRooms
 
         # Resources
-        default_api_ns.add_resource(QueryRooms, '/room', resource_class_kwargs=kwargs)
+        default_api_ns.add_resource(QueryRooms, '/rooms', resource_class_kwargs=kwargs)
 
     def init_views(self):
         from .Views.Index import Index
