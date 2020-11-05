@@ -3,12 +3,10 @@ from flask_restx import Resource, inputs
 from flask_babel import gettext
 from modules.LoginModule.LoginModule import LoginModule, current_service
 from modules.FlaskModule.FlaskModule import service_api_ns as api
-from modules.DatabaseModule.DBManager import DBManager
 from opentera.db.models.TeraParticipant import TeraParticipant
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from datetime import datetime
-
 from opentera.db.models.TeraSession import TeraSession, TeraSessionStatus
 from opentera.db.models.TeraSessionType import TeraSessionType
 from opentera.db.models.TeraUser import TeraUser
@@ -21,7 +19,6 @@ get_parser.add_argument('uuid_session', type=str, help='UUID of the session to q
 get_parser.add_argument('id_participant', type=int, help='ID of the participant to query')
 get_parser.add_argument('list', type=inputs.boolean, help='Flag that limits the returned data to minimal information')
 get_parser.add_argument('with_events', type=inputs.boolean, help='Also includes session events')
-get_parser.add_argument('with_session_type', type=inputs.boolean, help='Also includes session type information')
 
 post_parser = api.parser()
 post_schema = api.schema_model('user_session', {'properties': TeraSession.get_json_schema(),
@@ -42,27 +39,17 @@ class ServiceQuerySessions(Resource):
              responses={200: 'Success',
                         500: 'Required parameter is missing',
                         501: 'Not implemented.',
-                        403: 'Logged service doesn\'t have permission to access the requested data'})
+                        403: 'Logged user doesn\'t have permission to access the requested data'})
     def get(self):
         parser = get_parser
         args = parser.parse_args()
 
-        service_access = DBManager.serviceAccess(current_service)
-
         sessions = []
         if args['id_session']:
-            if args['id_session'] not in service_access.get_accessible_sessions_ids():
-                return gettext('Forbidden'), 403
             sessions = [TeraSession.get_session_by_id(args['id_session'])]
         elif args['uuid_session']:
-            queried_session = TeraSession.get_session_by_uuid(args['uuid_session'])
-            if queried_session:
-                if queried_session.id_session not in service_access.get_accessible_sessions_ids():
-                    return gettext('Forbidden'), 403
-            sessions = [queried_session]
+            sessions = [TeraSession.get_session_by_uuid(args['uuid_session'])]
         elif args['id_participant']:
-            if args['id_participant'] not in service_access.get_accessible_participants_ids():
-                return gettext('Forbidden'), 403
             sessions = TeraSession.get_sessions_for_participant(args['id_participant'])
         else:
             return gettext('Missing arguments: at least one id is required'), 400
@@ -71,10 +58,8 @@ class ServiceQuerySessions(Resource):
             sessions_list = []
             for ses in sessions:
                 session_json = ses.to_json(args['list'])
-
-                if args['with_session_type']:
-                    session_type = TeraSessionType.get_session_type_by_id(ses.id_session_type)
-                    session_json['session_type'] = session_type.to_json()
+                session_type = TeraSessionType.get_session_type_by_id(ses.id_session_type)
+                session_json['session_type'] = session_type.to_json()
 
                 if args['with_events']:
                     # Get events for session
