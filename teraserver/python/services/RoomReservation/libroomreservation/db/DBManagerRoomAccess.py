@@ -3,7 +3,7 @@ import datetime
 import calendar
 
 
-class DBManagerRoomReservationAccess:
+class DBManagerRoomAccess:
 
     def query_room_by_id(self, room_id: int):
         room = RoomReservationRoom.get_room_by_id(room_id)
@@ -13,4 +13,3 @@ class DBManagerRoomReservationAccess:
         rooms = RoomReservationRoom.query.filter_by(id_site=site_id)
 
         return rooms.all()
-

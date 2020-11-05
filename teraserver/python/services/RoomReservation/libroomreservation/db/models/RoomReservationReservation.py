@@ -20,8 +20,8 @@ class RoomReservationReservation(db.Model, BaseModel):
         return super().to_json(ignore_fields=ignore_fields)
 
     @staticmethod
-    def get_room_sessions_by_room(room_id: int):
-        return RoomReservationReservation.query.filter_by(id_room=room_id).all()
+    def get_reservation_by_id(reservation_id: int):
+        return RoomReservationReservation.query.filter_by(id_reservation=reservation_id).all()
 
     @staticmethod
     def create_defaults():
