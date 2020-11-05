@@ -10,7 +10,6 @@ from services.shared.TeraUserClient import TeraUserClient
 
 # Current client identity, stacked
 current_user_client = LocalProxy(lambda: getattr(_request_ctx_stack.top, 'current_user_client', None))
-
 current_login_type = LocalProxy(lambda: getattr(_request_ctx_stack.top, 'current_login_type', LoginType.UNKNOWN_LOGIN))
 
 
