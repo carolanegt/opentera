@@ -14,7 +14,7 @@ class RoomReservationRoom(db.Model, BaseModel):
             ignore_fields = []
 
         if minimal:
-            ignore_fields += ['room_room_sessions']
+            ignore_fields += ['room_reservations']
 
         return super().to_json(ignore_fields=ignore_fields)
 

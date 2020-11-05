@@ -33,7 +33,7 @@ class ServiceRoomReservation(ServiceOpenTera):
     def register_to_events(self):
         # Need to register to events produced by UserManagerModule
         ret1 = yield self.subscribe_pattern_with_callback(create_module_event_topic_from_name(
-            ModuleNames.DATABASE_MODULE_NAME), self.database_event_received)
+            ModuleNames.DATABASE_MODULE_NAME, 'TeraSession'), self.database_event_received)
 
         print(ret1)
 
