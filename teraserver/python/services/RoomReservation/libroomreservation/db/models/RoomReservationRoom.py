@@ -7,11 +7,14 @@ class RoomReservationRoom(db.Model, BaseModel):
     id_site = db.Column(db.Integer, nullable=False)
     room_name = db.Column(db.String, nullable=False)
 
-    room_room_sessions = db.relationship('RoomReservationRoomSession')
+    room_reservations = db.relationship('RoomReservationReservation')
 
     def to_json(self, ignore_fields=None, minimal=False):
         if ignore_fields is None:
             ignore_fields = []
+
+        if minimal:
+            ignore_fields += ['room_room_sessions']
 
         return super().to_json(ignore_fields=ignore_fields)
 

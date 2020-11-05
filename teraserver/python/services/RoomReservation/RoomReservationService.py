@@ -6,6 +6,11 @@ from libtera.redis.RedisClient import RedisClient
 import services.RoomReservation.Globals as Globals
 from sqlalchemy.exc import OperationalError
 from services.shared.ServiceOpenTera import ServiceOpenTera
+from twisted.internet import defer
+from modules.BaseModule import ModuleNames, create_module_event_topic_from_name
+import messages.python as messages
+from google.protobuf.json_format import Parse, ParseError
+from google.protobuf.message import DecodeError
 
 import os
 
@@ -14,12 +19,62 @@ class ServiceRoomReservation(ServiceOpenTera):
     def __init__(self, config_man: ConfigManager, this_service_info):
         ServiceOpenTera.__init__(self, config_man, this_service_info)
 
+        # Active sessions
+        self.sessions = dict()
+
     def notify_service_messages(self, pattern, channel, message):
         pass
 
     def setup_rpc_interface(self):
         # TODO Update rpc interface
         pass
+
+    @defer.inlineCallbacks
+    def register_to_events(self):
+        # Need to register to events produced by UserManagerModule
+        ret1 = yield self.subscribe_pattern_with_callback(create_module_event_topic_from_name(
+            ModuleNames.DATABASE_MODULE_NAME), self.database_event_received)
+
+        print(ret1)
+
+    def database_event_received(self, pattern, channel, message):
+        print('RoomReservationService - database_event_received', pattern, channel, message)
+        try:
+            tera_event = messages.TeraEvent()
+            if isinstance(message, str):
+                ret = tera_event.ParseFromString(message.encode('utf-8'))
+            elif isinstance(message, bytes):
+                ret = tera_event.ParseFromString(message)
+
+            database_event = messages.DatabaseEvent()
+
+            # Look for DatabaseEvent
+            for any_msg in tera_event.events:
+                if any_msg.Unpack(database_event):
+                    self.handle_database_event(database_event)
+
+        except DecodeError as d:
+            print('RoomReservationService - DecodeError ', pattern, channel, message, d)
+        except ParseError as e:
+            print('RoomReservationService - Failure in redisMessageReceived', e)
+
+    def handle_database_event(self, event: messages.DatabaseEvent):
+        print('RoomReservationService.handle_database_event', event)
+        # Verify each session
+        for id_session in self.sessions:
+            session_info = self.sessions[id_session]
+
+            # Verify if it contains the user_uuid
+            if event.user_uuid in session_info['session_users']:
+                # Verify the event type
+                print(event)
+                if event.type == messages.DatabaseEvent.DB_DELETE:
+                    # TODO delete reservation linked to the deleted session, event_name = 'session'
+                    # Resend invitation to newly connected user
+                    print('Resending invitation to ', event, session_info)
+
+                    self.send_join_message(session_info=session_info, target_devices=[], target_participants=[],
+                                           target_users=[event.user_uuid])
 
 
 if __name__ == '__main__':

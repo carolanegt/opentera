@@ -1,5 +1,5 @@
 from flask import jsonify, session, request
-from flask_restx import Resource, reqparse
+from flask_restx import Resource, reqparse, inputs
 from modules.LoginModule.LoginModule import user_multi_auth
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
@@ -14,6 +14,7 @@ from services.RoomReservation.libroomreservation.db.DBManager import DBManager
 get_parser = api.parser()
 get_parser.add_argument('id_room', type=int, help='ID of the room to query')
 get_parser.add_argument('id_site', type=int, help='ID of the site from which to get all rooms')
+get_parser.add_argument('reservations', type=inputs.boolean, help='Flag that expands the returned data to include reservations')
 
 post_parser = api.parser()
 delete_parser = reqparse.RequestParser()
@@ -30,18 +31,14 @@ class QueryRooms(Resource):
     @api.doc(description='Get rooms information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of rooms',
                         500: 'Database error'})
-    @AccessManager.token_required
+    # @AccessManager.token_required
     def get(self):
         parser = get_parser
 
-        # current_user = TeraUser.get_user_by_uuid(session['_user_id'])
         room_access = DBManager.roomReservationAccess()
         args = parser.parse_args()
 
         rooms = []
-        if args['id']:
-            args['id_room'] = args['id']
-
         if args['id_room']:
             rooms = [RoomReservationRoom.get_room_by_id(args['id_room'])]
         elif args['id_site']:
@@ -52,7 +49,18 @@ class QueryRooms(Resource):
             rooms_list = []
 
             for room in rooms:
-                room_json = room.to_json()
+
+                if args['reservations']:
+                    room_json = room.to_json(ignore_fields=['room_room_sessions'])
+                    room_reservations = room.room_reservations
+
+                    for reservation in room_reservations:
+                        # session = room_access.query_session_by_uuid(reservation.session_uuid)
+                        room_json['uuid_session'] = reservation.session_uuid
+
+                else:
+                    room_json = room.to_json(minimal=True)
+
                 rooms_list.append(room_json)
 
             return jsonify(rooms_list)
@@ -73,8 +81,6 @@ class QueryRooms(Resource):
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
                         500: 'Internal error occurred when saving project'})
     def post(self):
-
-        # current_user = TeraUser.get_user_by_uuid(session['_user_id'])
         room_access = DBManager.roomReservationAccess()
         # Using request.json instead of parser, since parser messes up the json!
         room_json = request.json['project']
@@ -83,10 +89,10 @@ class QueryRooms(Resource):
         if 'id_room' not in room_json or 'id_site' not in room_json:
             return gettext('Missing id_room or id_site arguments'), 400
 
-        # Only site admins can create new rooms
-        if room_json['id_room'] == 0 and room_json['id_site'] not in room_access.get_accessible_sites_ids(
-                admin_only=True):
-            return gettext('Forbidden'), 403
+        # TODO Only site admins can create new rooms
+        # if room_json['id_room'] == 0 and room_json['id_site'] not in room_access.get_accessible_sites_ids(
+        #        admin_only=True):
+        #    return gettext('Forbidden'), 403
 
         # Do the update!
         if room_json['id_room'] > 0:
@@ -136,10 +142,10 @@ class QueryRooms(Resource):
         id_todel = args['id']
 
         # Check if current user can delete
-        # Only site admins can delete a project
-        project = RoomReservationRoom.get_room_by_id(id_todel)
+        # TODO Only site admins can delete a room
+        room = RoomReservationRoom.get_room_by_id(id_todel)
 
-        if room_access.get_site_role(project.project_site.id_site) != 'admin':
+        if room_access.get_site_role(room.project_site.id_site) != 'admin':
             return gettext('Forbidden'), 403
 
         # If we are here, we are allowed to delete. Do so.
