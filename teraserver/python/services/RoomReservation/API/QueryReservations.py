@@ -1,3 +1,5 @@
+import json
+
 from flask import jsonify, session, request
 from flask_restx import Resource, reqparse, inputs
 from modules.LoginModule.LoginModule import user_multi_auth
@@ -5,137 +7,139 @@ from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
 
+from services.RoomReservation.Globals import service_opentera
 from services.RoomReservation.AccessManager import AccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
+from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
 from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager
 
 # Parser definition(s)
 get_parser = api.parser()
-get_parser.add_argument('id_room', type=int, help='ID of the room to query')
-get_parser.add_argument('id_site', type=int, help='ID of the site from which to get all rooms')
-get_parser.add_argument('reservations', type=inputs.boolean, help='Flag that expands the returned data to include '
-                                                                  'reservations')
+get_parser.add_argument('id_reservation', type=int, help='ID of the reservation to query')
 
 post_parser = api.parser()
 delete_parser = reqparse.RequestParser()
-delete_parser.add_argument('id', type=int, help='Room ID to delete', required=True)
+delete_parser.add_argument('id', type=int, help='Reservation ID to delete', required=True)
 
 
-class QueryRooms(Resource):
+class QueryReservations(Resource):
 
     def __init__(self, _api, *args, **kwargs):
         Resource.__init__(self, _api, *args, **kwargs)
         self.module = kwargs.get('flaskModule', None)
 
     @api.expect(get_parser)
-    @api.doc(description='Get rooms information. Only one of the ID parameter is supported and required at once',
-             responses={200: 'Success - returns list of rooms',
+    @api.doc(description='Get reservations information. Only one of the ID parameter is supported and required at once',
+             responses={200: 'Success - returns list of reservations',
                         500: 'Database error'})
     # @AccessManager.token_required
     def get(self):
         parser = get_parser
 
-        room_access = DBManager.roomAccess()
+        reservation_access = DBManager.reservationAccess()
         args = parser.parse_args()
 
-        rooms = []
-        if args['id_room']:
-            rooms = [RoomReservationRoom.get_room_by_id(args['id_room'])]
-        elif args['id_site']:
-            # If we have a site id, query for rooms of that site
-            rooms = room_access.query_rooms_for_site(site_id=args['id_site'])
+        reservations = []
+        if args['id_reservation']:
+            reservations = reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])
 
         try:
-            rooms_list = []
+            reservations_list = []
 
-            for room in rooms:
-                room_json = room.to_json(minimal=True)
-                rooms_list.append(room_json)
+            for reservation in reservations:
+                reservation_json = reservation.to_json()
 
-            return jsonify(rooms_list)
+                endpoint = '/api/service/sessions'
+                params = {'uuid_session': reservation.session_uuid}
+                response = service_opentera.get_from_opentera(endpoint, params)
+
+                if response.status_code == 200:
+                    session_info = response.json()
+                    reservation_json['session'] = session_info
+                else:
+                    return 'Unauthorized', 403
+
+                reservations_list.append(reservation_json)
+
+            return jsonify(reservations_list)
 
         except InvalidRequestError as e:
             self.module.logger.log_error(self.module.module_name,
-                                         QueryRooms.__name__,
+                                         QueryReservations.__name__,
                                          'get', 500, 'InvalidRequestError', str(e))
             return gettext('Invalid request'), 500
 
     @user_multi_auth.login_required
     @api.expect(post_parser)
-    @api.doc(description='Create / update rooms. id_room must be set to "0" to create a new '
-                         'room. A room can be created/modified if the user has admin rights to the '
+    @api.doc(description='Create / update reservations. id_reservation must be set to "0" to create a new '
+                         'reservation. A reservation can be created/modified if the user has admin rights to the '
                          'related site.',
              responses={200: 'Success',
-                        403: 'Logged user can\'t create/update the specified room',
+                        403: 'Logged user can\'t create/update the specified reservation',
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
-                        500: 'Internal error occurred when saving room'})
+                        500: 'Internal error occurred when saving reservation'})
     def post(self):
-        room_access = DBManager.roomAccess()
+        reservation_access = DBManager.reservationAccess()
         # Using request.json instead of parser, since parser messes up the json!
-        room_json = request.json['room']
+        reservation_json = request.json['reservation']
 
         # Validate if we have an id
-        if 'id_room' not in room_json or 'id_site' not in room_json:
-            return gettext('Missing id_room or id_site arguments'), 400
-
-        # TODO Only site admins can create new rooms
-        # if room_json['id_room'] == 0 and room_json['id_site'] not in room_access.get_accessible_sites_ids(
-        #        admin_only=True):
-        #    return gettext('Forbidden'), 403
+        if 'id_reservation' not in reservation_json or 'id_room' not in reservation_json:
+            return gettext('Missing id_reservation or id_room arguments'), 400
 
         # Do the update!
-        if room_json['id_room'] > 0:
+        if reservation_json['id_reservation'] > 0:
             # Already existing
             try:
-                RoomReservationRoom.update(room_json['id_room'], room_json)
+                RoomReservationReservation.update(reservation_json['id_reservation'], reservation_json)
             except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
                 self.module.logger.log_error(self.module.module_name,
-                                             QueryRooms.__name__,
+                                             QueryReservations.__name__,
                                              'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
         else:
             # New
             try:
-                new_room = RoomReservationRoom()
-                new_room.from_json(room_json)
-                RoomReservationRoom.insert(new_room)
+                new_reservation = RoomReservationReservation()
+                new_reservation.from_json(reservation_json)
+                RoomReservationReservation.insert(new_reservation)
                 # Update ID for further use
-                room_json['id_room'] = new_room.id_room
+                reservation_json['id_reservation'] = new_reservation.id_reservation
             except exc.SQLAlchemyError as e:
                 import sys
                 print(sys.exc_info())
                 self.module.logger.log_error(self.module.module_name,
-                                             QueryRooms.__name__,
+                                             QueryReservations.__name__,
                                              'post', 500, 'Database error', str(e))
                 return gettext('Database error'), 500
 
         # TODO: Publish update to everyone who is subscribed to sites update...
-        update_room = RoomReservationRoom.get_room_by_id(room_json['id_room'])
+        update_reservation = RoomReservationReservation.get_reservation_by_id(reservation_json['id_reservation'])
 
-        return jsonify([update_room.to_json()])
+        return jsonify([update_reservation.to_json()])
 
     @user_multi_auth.login_required
     @api.expect(delete_parser)
-    @api.doc(description='Delete a specific room',
+    @api.doc(description='Delete a specific reservation',
              responses={200: 'Success',
-                        403: 'Logged user can\'t delete room (only site admin can delete)',
+                        403: 'Logged user can\'t delete reservation (only site admin can delete)',
                         500: 'Database error.'})
     def delete(self):
         parser = delete_parser
         # current_user = TeraUser.get_user_by_uuid(session['_user_id'])
-        room_access = DBManager.roomAccess()
+        reservation_access = DBManager.reservationAccess()
 
         args = parser.parse_args()
         id_todel = args['id']
 
         # Check if current user can delete
-        # TODO Only site admins can delete a room
-        room = RoomReservationRoom.get_room_by_id(id_todel)
+        # TODO Only site admins can delete a reservation
+        reservation = RoomReservationRoom.get_reservation_by_id(id_todel)
 
-        if room_access.get_site_role(room.room_site.id_site) != 'admin':
+        if reservation_access.get_site_role(reservation.reservation_site.id_site) != 'admin':
             return gettext('Forbidden'), 403
 
         # If we are here, we are allowed to delete. Do so.

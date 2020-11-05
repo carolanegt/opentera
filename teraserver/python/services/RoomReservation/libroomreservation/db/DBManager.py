@@ -13,7 +13,8 @@ from services.RoomReservation.FlaskModule import flask_app
 from alembic.config import Config
 from alembic import command
 
-from services.RoomReservation.libroomreservation.db.DBManagerRoomReservationAccess import DBManagerRoomReservationAccess
+from services.RoomReservation.libroomreservation.db.DBManagerRoomAccess import DBManagerRoomAccess
+from services.RoomReservation.libroomreservation.db.DBManagerReservationAccess import DBManagerReservationAccess
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
 from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 
@@ -32,8 +33,13 @@ class DBManager:
         self.db_uri = None
 
     @staticmethod
-    def roomReservationAccess():
-        access = DBManagerRoomReservationAccess()
+    def roomAccess():
+        access = DBManagerRoomAccess()
+        return access
+
+    @staticmethod
+    def reservationAccess():
+        access = DBManagerReservationAccess()
         return access
 
     def create_defaults(self, config: ConfigManager):
