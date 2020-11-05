@@ -7,6 +7,8 @@ class RoomReservationRoom(db.Model, BaseModel):
     id_site = db.Column(db.Integer, nullable=False)
     room_name = db.Column(db.String, nullable=False)
 
+    room_room_sessions = db.relationship('RoomReservationRoomSession')
+
     def to_json(self, ignore_fields=None, minimal=False):
         if ignore_fields is None:
             ignore_fields = []

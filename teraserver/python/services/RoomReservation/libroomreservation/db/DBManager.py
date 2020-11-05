@@ -14,6 +14,7 @@ from alembic.config import Config
 from alembic import command
 
 from services.RoomReservation.libroomreservation.db.DBManagerRoomReservationAccess import DBManagerRoomReservationAccess
+from services.RoomReservation.libroomreservation.db.models.RoomReservationRoomSession import RoomReservationRoomSession
 from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 
 
@@ -40,6 +41,10 @@ class DBManager:
         if RoomReservationRoom.get_count() == 0:
             print('No rooms - creating defaults')
             RoomReservationRoom.create_defaults()
+
+        if RoomReservationRoomSession.get_count() == 0:
+            print('No room sessions - creating defaults')
+            RoomReservationRoomSession.create_defaults()
 
     def open(self, db_infos, echo=False):
         self.db_uri = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % db_infos
