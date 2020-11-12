@@ -10,7 +10,7 @@ class RoomReservationReservation(db.Model, BaseModel):
     session_uuid = db.Column(db.String(36), nullable=True, unique=True)
     user_uuid = db.Column(db.String(36), nullable=False)
     reservation_start_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    reservation_duration = db.Column(db.Integer, nullable=False, default=0)
+    reservation_duration = db.Column(db.Float, nullable=False, default=0)
     user_name = db.Column(db.String, nullable=False)
 
     def to_json(self, ignore_fields=None, minimal=False):
