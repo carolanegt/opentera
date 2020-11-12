@@ -17,6 +17,9 @@ from services.RoomReservation.libroomreservation.db.DBManager import DBManager
 # Parser definition(s)
 get_parser = api.parser()
 get_parser.add_argument('id_reservation', type=int, help='ID of the reservation to query')
+get_parser.add_argument('id_room', type=int, help='ID of the room from which to get all reservations')
+get_parser.add_argument('start_date', type=str, help='Date of first day to query')
+get_parser.add_argument('end_date', type=str, help='Date of last day to query')
 
 post_parser = api.parser()
 delete_parser = reqparse.RequestParser()
@@ -33,7 +36,7 @@ class QueryReservations(Resource):
     @api.doc(description='Get reservations information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of reservations',
                         500: 'Database error'})
-    # @AccessManager.token_required
+    @AccessManager.token_required
     def get(self):
         parser = get_parser
 
@@ -43,6 +46,13 @@ class QueryReservations(Resource):
         reservations = []
         if args['id_reservation']:
             reservations = reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])
+        if args['id_room']:
+            if not args['start_date'] or not args['end_date']:
+                return 'Missing date arguments', 400
+            else:
+                reservations = reservation_access.query_reservation_by_room(room_id=args['id_room'],
+                                                                            start_date=args['start_date'],
+                                                                            end_date=args['end_date'])
 
         try:
             reservations_list = []
@@ -50,15 +60,17 @@ class QueryReservations(Resource):
             for reservation in reservations:
                 reservation_json = reservation.to_json()
 
-                endpoint = '/api/service/sessions'
-                params = {'uuid_session': reservation.session_uuid}
-                response = service_opentera.get_from_opentera(endpoint, params)
+                # If reservation has a session associated to it, get it from OpenTera
+                if reservation.session_uuid and args['id_reservation']:
+                    endpoint = '/api/service/sessions'
+                    params = {'uuid_session': reservation.session_uuid}
+                    response = service_opentera.get_from_opentera(endpoint, params)
 
-                if response.status_code == 200:
-                    session_info = response.json()
-                    reservation_json['session'] = session_info
-                else:
-                    return 'Unauthorized', 403
+                    if response.status_code == 200:
+                        session_info = response.json()
+                        reservation_json['session'] = session_info
+                    else:
+                        return 'Unauthorized', 403
 
                 reservations_list.append(reservation_json)
 
