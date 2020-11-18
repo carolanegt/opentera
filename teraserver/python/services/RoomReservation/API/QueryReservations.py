@@ -1,8 +1,7 @@
 import json
 
-from flask import jsonify, session, request
-from flask_restx import Resource, reqparse, inputs
-from modules.LoginModule.LoginModule import user_multi_auth
+from flask import jsonify, request
+from flask_restx import Resource, reqparse
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
@@ -82,7 +81,6 @@ class QueryReservations(Resource):
                                          'get', 500, 'InvalidRequestError', str(e))
             return gettext('Invalid request'), 500
 
-    @user_multi_auth.login_required
     @api.expect(post_parser)
     @api.doc(description='Create / update reservations. id_reservation must be set to "0" to create a new '
                          'reservation. A reservation can be created/modified if the user has admin rights to the '
@@ -91,6 +89,7 @@ class QueryReservations(Resource):
                         403: 'Logged user can\'t create/update the specified reservation',
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
                         500: 'Internal error occurred when saving reservation'})
+    @AccessManager.token_required
     def post(self):
         reservation_access = DBManager.reservationAccess()
         # Using request.json instead of parser, since parser messes up the json!
@@ -133,12 +132,12 @@ class QueryReservations(Resource):
 
         return jsonify([update_reservation.to_json()])
 
-    @user_multi_auth.login_required
     @api.expect(delete_parser)
     @api.doc(description='Delete a specific reservation',
              responses={200: 'Success',
                         403: 'Logged user can\'t delete reservation (only site admin can delete)',
                         500: 'Database error.'})
+    @AccessManager.token_required
     def delete(self):
         parser = delete_parser
         # current_user = TeraUser.get_user_by_uuid(session['_user_id'])
