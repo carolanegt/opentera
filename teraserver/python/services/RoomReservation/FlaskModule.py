@@ -102,10 +102,12 @@ class FlaskModule(BaseModule):
 
         from .API.QueryRooms import QueryRooms
         from .API.QueryReservations import QueryReservations
+        from .API.QueryUserInfos import QueryUserInfos
 
         # Resources
         default_api_ns.add_resource(QueryRooms, '/rooms', resource_class_kwargs=kwargs)
         default_api_ns.add_resource(QueryReservations, '/reservations', resource_class_kwargs=kwargs)
+        default_api_ns.add_resource(QueryUserInfos, '/userinfos', resource_class_kwargs=kwargs)
 
     def init_views(self):
         from .Views.Index import Index
