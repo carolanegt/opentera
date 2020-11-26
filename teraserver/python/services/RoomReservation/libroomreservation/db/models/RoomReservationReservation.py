@@ -11,7 +11,7 @@ class RoomReservationReservation(db.Model, BaseModel):
     session_uuid = db.Column(db.String(36), nullable=True, unique=True)
     user_uuid = db.Column(db.String(36), nullable=False)
     reservation_start_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    reservation_duration = db.Column(db.Float, nullable=False, default=0)
+    reservation_end_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     user_name = db.Column(db.String, nullable=False)
 
     def to_json(self, ignore_fields=None, minimal=False):
@@ -22,16 +22,15 @@ class RoomReservationReservation(db.Model, BaseModel):
 
     @staticmethod
     def get_reservation_by_id(reservation_id: int):
-        return RoomReservationReservation.query.filter_by(id_reservation=reservation_id).all()
+        return RoomReservationReservation.query.filter_by(id_reservation=reservation_id).first()
 
     @staticmethod
     def create_defaults():
         base_reservation = RoomReservationReservation()
-        base_reservation.session_uuid = 'e5a7e3ef-d08c-48e8-9d1b-900ca96292ab'
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 1
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=1)
         base_reservation.reservation_start_datetime = datetime.datetime.now()
         RoomReservationReservation.insert(base_reservation)
 
@@ -39,7 +38,7 @@ class RoomReservationReservation(db.Model, BaseModel):
         base_reservation.id_room = 2
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 0.5
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=1)
         base_reservation.reservation_start_datetime = datetime.datetime.now()
         RoomReservationReservation.insert(base_reservation)
 
@@ -47,7 +46,7 @@ class RoomReservationReservation(db.Model, BaseModel):
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 2
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=1, hours=1.5)
         base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(days=1)
         RoomReservationReservation.insert(base_reservation)
 
@@ -55,15 +54,15 @@ class RoomReservationReservation(db.Model, BaseModel):
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 2
-        base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(days=1) + timedelta(hours=2)
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=1, hours=3)
+        base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(days=1, hours=2)
         RoomReservationReservation.insert(base_reservation)
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 1.5
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=6, hours=2)
         base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(days=6)
         RoomReservationReservation.insert(base_reservation)
 
@@ -71,7 +70,7 @@ class RoomReservationReservation(db.Model, BaseModel):
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 1.25
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=2, hours=1.5)
         base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(days=2)
         RoomReservationReservation.insert(base_reservation)
 
@@ -79,6 +78,6 @@ class RoomReservationReservation(db.Model, BaseModel):
         base_reservation.id_room = 1
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
-        base_reservation.reservation_duration = 1
+        base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=5)
         base_reservation.reservation_start_datetime = datetime.datetime.now() + timedelta(hours=2)
         RoomReservationReservation.insert(base_reservation)

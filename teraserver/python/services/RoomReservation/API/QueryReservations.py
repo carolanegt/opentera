@@ -5,12 +5,12 @@ from flask_restx import Resource, reqparse
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
+from datetime import datetime, timedelta
 
 from services.RoomReservation.Globals import service_opentera
 from services.RoomReservation.AccessManager import AccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
-from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager
 
 # Parser definition(s)
@@ -44,7 +44,7 @@ class QueryReservations(Resource):
 
         reservations = []
         if args['id_reservation']:
-            reservations = reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])
+            reservations = [reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])]
         if args['id_room']:
             if not args['start_date'] or not args['end_date']:
                 return 'Missing date arguments', 400
@@ -99,6 +99,11 @@ class QueryReservations(Resource):
         if 'id_reservation' not in reservation_json or 'id_room' not in reservation_json:
             return gettext('Missing id_reservation or id_room arguments'), 400
 
+        # Check if there is already a reservation at that time in this room
+        reservations = reservation_access.query_by_room_and_time(reservation_json)
+        if reservations:
+            return gettext('A reservation already uses this time slot'), 400
+
         # Do the update!
         if reservation_json['id_reservation'] > 0:
             # Already existing
@@ -148,19 +153,16 @@ class QueryReservations(Resource):
 
         # Check if current user can delete
         # TODO Only site admins can delete a reservation
-        reservation = RoomReservationRoom.get_reservation_by_id(id_todel)
+        reservation = RoomReservationReservation.get_reservation_by_id(id_todel)
 
-        if reservation_access.get_site_role(reservation.reservation_site.id_site) != 'admin':
-            return gettext('Forbidden'), 403
-
-        # If we are here, we are allowed to delete. Do so.
+        # If we are here, we are allowed to delete.
         try:
-            RoomReservationRoom.delete(id_todel=id_todel)
+            RoomReservationReservation.delete(id_todel=id_todel)
         except exc.SQLAlchemyError as e:
             import sys
             print(sys.exc_info())
             self.module.logger.log_error(self.module.module_name,
-                                         QueryRooms.__name__,
+                                         QueryReservations.__name__,
                                          'delete', 500, 'Database error', str(e))
             return gettext('Database error'), 500
 
