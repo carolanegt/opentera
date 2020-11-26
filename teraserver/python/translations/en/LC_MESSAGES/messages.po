@@ -1493,3 +1493,10 @@ msgstr ""
 #~ msgid "ONVIF (Generic)"
 #~ msgstr ""
 
+#: services/RoomReservation/API/QueryReservations.py:100
+msgid "Missing id_reservation or id_room arguments"
+msgstr "Missing id_reservation or id_room arguments."
+
+#: services/RoomReservation/API/QueryReservations.py:105
+msgid "A reservation already uses this time slot"
+msgstr "A reservation already uses this time slot."
