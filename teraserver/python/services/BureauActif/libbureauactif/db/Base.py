@@ -1,10 +1,11 @@
-from flask_sqlalchemy import SQLAlchemy, event
+from flask_sqlalchemy import SQLAlchemy
+from libtera.db.Base import BaseModel, db
 import inspect
 import datetime
 # import uuid
 import time
 
-db = SQLAlchemy()
+# db = SQLAlchemy()
 
 
 class BaseModel:
