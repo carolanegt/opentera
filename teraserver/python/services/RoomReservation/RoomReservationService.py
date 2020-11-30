@@ -29,9 +29,6 @@ class ServiceRoomReservation(ServiceOpenTera):
         # Create twisted service
         self.flaskModuleService = self.flaskModule.create_service()
 
-        # Active sessions
-        self.sessions = dict()
-
     def notify_service_messages(self, pattern, channel, message):
         pass
 
@@ -70,21 +67,11 @@ class ServiceRoomReservation(ServiceOpenTera):
 
     def handle_database_event(self, event: messages.DatabaseEvent):
         print('RoomReservationService.handle_database_event', event)
-        # Verify each session
-        for id_session in self.sessions:
-            session_info = self.sessions[id_session]
 
-            # Verify if it contains the user_uuid
-            if event.user_uuid in session_info['session_users']:
-                # Verify the event type
-                print(event)
-                if event.type == messages.DatabaseEvent.DB_DELETE:
-                    # TODO delete reservation linked to the deleted session, event_name = 'session'
-                    # Resend invitation to newly connected user
-                    print('Resending invitation to ', event, session_info)
-
-                    self.send_join_message(session_info=session_info, target_devices=[], target_participants=[],
-                                           target_users=[event.user_uuid])
+        if event.type == messages.DatabaseEvent.DB_DELETE:
+            # TODO delete reservation linked to the deleted session, event_name = 'session'
+            # Resend invitation to newly connected user
+            pass
 
 
 if __name__ == '__main__':
