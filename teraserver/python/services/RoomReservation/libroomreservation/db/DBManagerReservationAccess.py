@@ -30,4 +30,4 @@ class DBManagerReservationAccess:
 
         if reservations:
             return reservations
-        return []
+        return None
