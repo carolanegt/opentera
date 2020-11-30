@@ -8,7 +8,7 @@ from flask_babel import gettext
 from datetime import datetime, timedelta
 
 from services.RoomReservation.Globals import service_opentera
-from services.RoomReservation.AccessManager import AccessManager
+from services.shared.ServiceAccessManager import ServiceAccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager
@@ -35,7 +35,7 @@ class QueryReservations(Resource):
     @api.doc(description='Get reservations information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of reservations',
                         500: 'Database error'})
-    @AccessManager.token_required
+    @ServiceAccessManager.token_required
     def get(self):
         parser = get_parser
 
@@ -89,7 +89,7 @@ class QueryReservations(Resource):
                         403: 'Logged user can\'t create/update the specified reservation',
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
                         500: 'Internal error occurred when saving reservation'})
-    @AccessManager.token_required
+    @ServiceAccessManager.token_required
     def post(self):
         reservation_access = DBManager.reservationAccess()
         # Using request.json instead of parser, since parser messes up the json!
@@ -142,7 +142,7 @@ class QueryReservations(Resource):
              responses={200: 'Success',
                         403: 'Logged user can\'t delete reservation (only site admin can delete)',
                         500: 'Database error.'})
-    @AccessManager.token_required
+    @ServiceAccessManager.token_required
     def delete(self):
         parser = delete_parser
         # current_user = TeraUser.get_user_by_uuid(session['_user_id'])

@@ -1,16 +1,20 @@
 from services.RoomReservation.FlaskModule import FlaskModule, flask_app
-from services.RoomReservation.TwistedModule import TwistedModule
 from services.RoomReservation.ConfigManager import ConfigManager
 from modules.RedisVars import RedisVars
 from libtera.redis.RedisClient import RedisClient
 import services.RoomReservation.Globals as Globals
 from sqlalchemy.exc import OperationalError
 from services.shared.ServiceOpenTera import ServiceOpenTera
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from modules.BaseModule import ModuleNames, create_module_event_topic_from_name
 import messages.python as messages
 from google.protobuf.json_format import Parse, ParseError
 from google.protobuf.message import DecodeError
+
+from services.shared.ServiceAccessManager import ServiceAccessManager
+
+from twisted.python import log
+import sys
 
 import os
 
@@ -18,6 +22,12 @@ import os
 class ServiceRoomReservation(ServiceOpenTera):
     def __init__(self, config_man: ConfigManager, this_service_info):
         ServiceOpenTera.__init__(self, config_man, this_service_info)
+
+        # Create REST backend
+        self.flaskModule = FlaskModule(Globals.config_man)
+
+        # Create twisted service
+        self.flaskModuleService = self.flaskModule.create_service()
 
         # Active sessions
         self.sessions = dict()
@@ -79,18 +89,22 @@ class ServiceRoomReservation(ServiceOpenTera):
 
 if __name__ == '__main__':
 
+    # Very first thing, log to stdout
+    log.startLogging(sys.stdout)
+
     # Load configuration
-    from services.RoomReservation.Globals import config_man
-    config_man.load_config('RoomReservationService.json')
+    if not Globals.config_man.load_config('RoomReservationService.json'):
+        print('Invalid config')
+        exit(1)
 
     # DATABASE CONFIG AND OPENING
     #############################
     POSTGRES = {
-        'user': config_man.db_config['username'],
-        'pw': config_man.db_config['password'],
-        'db': config_man.db_config['name'],
-        'host': config_man.db_config['url'],
-        'port': config_man.db_config['port']
+        'user': Globals.config_man.db_config['username'],
+        'pw': Globals.config_man.db_config['password'],
+        'db': Globals.config_man.db_config['name'],
+        'host': Globals.config_man.db_config['url'],
+        'port': Globals.config_man.db_config['port']
     }
 
     try:
@@ -100,16 +114,29 @@ if __name__ == '__main__':
         quit()
 
     with flask_app.app_context():
-        Globals.db_man.create_defaults(config_man)
+        Globals.db_man.create_defaults(Globals.config_man)
 
     # Global redis client
-    Globals.redis_client = RedisClient(config_man.redis_config)
+    Globals.redis_client = RedisClient(Globals.config_man.redis_config)
     Globals.api_user_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_UserTokenAPIKey)
     Globals.api_device_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_DeviceTokenAPIKey)
+    Globals.api_device_static_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_DeviceStaticTokenAPIKey)
     Globals.api_participant_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_ParticipantTokenAPIKey)
+    Globals.api_participant_static_token_key = \
+        Globals.redis_client.redisGet(RedisVars.RedisVar_ParticipantStaticTokenAPIKey)
+
+    # Update Service Access information
+    ServiceAccessManager.api_user_token_key = Globals.api_user_token_key
+    ServiceAccessManager.api_participant_token_key = Globals.api_participant_token_key
+    ServiceAccessManager.api_participant_static_token_key = Globals.api_participant_static_token_key
+    ServiceAccessManager.api_device_token_key = Globals.api_device_token_key
+    ServiceAccessManager.api_device_static_token_key = Globals.api_device_static_token_key
+    ServiceAccessManager.config_man = Globals.config_man
 
     # Get service UUID
-    service_info = Globals.redis_client.redisGet(RedisVars.RedisVar_ServicePrefixKey + config_man.service_config['name'])
+    service_info = Globals.redis_client.redisGet(RedisVars.RedisVar_ServicePrefixKey +
+                                                 Globals.config_man.service_config['name'])
+
     import sys
     if service_info is None:
         sys.stderr.write('Error: Unable to get service info from OpenTera Server - is the server running and config '
@@ -121,20 +148,17 @@ if __name__ == '__main__':
         sys.stderr.write('OpenTera Server didn\'t return a valid service UUID - aborting.')
         exit(1)
 
-    config_man.service_config['ServiceUUID'] = service_info['service_uuid']
+    # Update service uuid
+    Globals.config_man.service_config['ServiceUUID'] = service_info['service_uuid']
 
-    # Creates communication interface with OpenTera
-    Globals.service_opentera = ServiceRoomReservation(config_man, service_info)
+    # Update port, hostname, endpoint
+    Globals.config_man.service_config['port'] = service_info['service_port']
+    Globals.config_man.service_config['hostname'] = service_info['service_hostname']
 
-    # TODO: Set port from service config from server?
+    # Create the Service
+    service = ServiceRoomReservation(Globals.config_man, service_info)
 
-    # Main Flask module
-    flask_module = FlaskModule(config_man)
-
-    # Main Twisted module
-    twisted_module = TwistedModule(config_man)
-
-    # Run reactor
-    twisted_module.run()
+    # Start App / reactor events
+    reactor.run()
 
     print('RoomReservationService - done!')

@@ -1,6 +1,6 @@
 from flask.views import MethodView
 from flask import render_template, request
-from services.RoomReservation.AccessManager import AccessManager
+from services.shared.ServiceAccessManager import ServiceAccessManager
 
 
 class Index(MethodView):
@@ -12,7 +12,7 @@ class Index(MethodView):
         self.flaskModule = kwargs.get('flaskModule', None)
         print(self.flaskModule)
 
-    @AccessManager.token_required
+    @ServiceAccessManager.token_required
     def get(self):
         hostname = self.flaskModule.config.server_config['hostname']
         port = self.flaskModule.config.server_config['port']
