@@ -1,7 +1,7 @@
 {
 	"Service": {
 		"name": "RoomReservation",
-		"hostname": "localhost",
+		"hostname": "127.0.0.1",
 		"port": 4090,
 		"ssl_path": "../../certificates",
 		"site_certificate": "site_cert.pem",
@@ -11,19 +11,19 @@
 		"debug_mode": false
 	},
 	"Backend": {
-		"hostname": "localhost",
+		"hostname": "127.0.0.1",
 		"port": 40075
 	},
 	"Database": {
 		"db_type": "QPSQL",
 		"name": "roomreservation",
-		"url": "localhost",
+		"url": "127.0.0.1",
 		"port": 5432,
 		"username": "roomreservation",
 		"password": "roomreservation"
 	},
 	"Redis": {
-	    "hostname": "localhost",
+	    "hostname": "127.0.0.1",
 	    "port": 6379,
 	    "db": 0,
 	    "username": "",
