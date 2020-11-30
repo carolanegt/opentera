@@ -101,7 +101,7 @@ class QueryReservations(Resource):
 
         # Check if there is already a reservation at that time in this room
         reservations = reservation_access.query_by_room_and_time(reservation_json)
-        if reservations:
+        if reservations is not None:
             return gettext('A reservation already uses this time slot'), 400
 
         # Do the update!
