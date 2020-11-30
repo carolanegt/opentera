@@ -1,6 +1,8 @@
 from flask_restx import Resource
 
-from services.RoomReservation.AccessManager import AccessManager, current_login_type, current_user_client, LoginType
+# from services.RoomReservation.AccessManager import AccessManager, current_login_type, current_user_client, LoginType
+from services.shared.ServiceAccessManager import ServiceAccessManager, current_login_type, current_user_client, \
+    LoginType
 from services.BureauActif.FlaskModule import default_api_ns as api
 
 
@@ -12,7 +14,7 @@ class QueryUserInfos(Resource):
 
     @api.doc(description='Gets user infos from token: user_name, user_uuid',
              responses={200: 'Success'})
-    @AccessManager.token_required
+    @ServiceAccessManager.token_required
     def get(self):
         user_infos = {
             'user_uuid': 'unknown',
