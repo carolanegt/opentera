@@ -1,6 +1,9 @@
+from sqlalchemy import and_, tuple_, or_, literal
+from sqlalchemy.orm import aliased
+
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
-import datetime
-import dateutil
+from datetime import datetime
+
 
 class DBManagerReservationAccess:
 
@@ -9,8 +12,8 @@ class DBManagerReservationAccess:
         return reservation
 
     def query_reservation_by_room(self, room_id, start_date, end_date):
-        start_date = datetime.datetime.strptime(start_date, '%d-%m-%Y').date()
-        end_date = datetime.datetime.strptime(end_date, '%d-%m-%Y').date()
+        start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
+        end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
 
         reservations = RoomReservationReservation.query.filter(
             RoomReservationReservation.reservation_start_datetime.between(start_date, end_date),
@@ -20,12 +23,17 @@ class DBManagerReservationAccess:
             return reservations
         return []
 
-    def query_by_room_and_time(self, reservation):
-        start_time = dateutil.parser.parse(reservation['reservation_start_datetime'])
-        end_time = dateutil.parser.parse(reservation['reservation_end_datetime'])
+    def query_overlaps(self, reservation):
+        start_time = datetime.fromisoformat(reservation['reservation_start_datetime'])
+        end_time = datetime.fromisoformat(reservation['reservation_end_datetime'])
 
         reservations = RoomReservationReservation.query.filter(
-            RoomReservationReservation.reservation_start_datetime.between(start_time, end_time),
+            or_(RoomReservationReservation.reservation_start_datetime.between(start_time, end_time),
+                RoomReservationReservation.reservation_end_datetime.between(start_time, end_time),
+                literal(start_time).between(RoomReservationReservation.reservation_start_datetime,
+                                   RoomReservationReservation.reservation_end_datetime),
+                literal(end_time).between(RoomReservationReservation.reservation_start_datetime,
+                                 RoomReservationReservation.reservation_end_datetime)),
             RoomReservationReservation.id_room == reservation['id_room']).all()
 
         if reservations:
