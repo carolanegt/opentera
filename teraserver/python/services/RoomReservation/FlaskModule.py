@@ -84,6 +84,25 @@ class MySite(Site):
         super().__init__(resource, requestFactory, *args, **kwargs)
 
 
+@babel.localeselector
+def get_locale():
+    # if a user is logged in, use the locale from the user settings
+    user = getattr(g, 'user', None)
+    if user is not None:
+        return user.locale
+    # otherwise try to guess the language from the user accept
+    # header the browser transmits.  We support fr/en in this
+    # example.  The best match wins.
+    return request.accept_languages.best_match(['fr', 'en'])
+
+
+@babel.timezoneselector
+def get_timezone():
+    user = getattr(g, 'user', None)
+    if user is not None:
+        return user.timezone
+
+
 # Simple fix for API documentation used with reverse proxy
 class CustomAPI(Api):
     @property
@@ -121,37 +140,18 @@ class CustomAPI(Api):
             return url_for(self.endpoint('root'), _external=False)
 
 
-@babel.localeselector
-def get_locale():
-    # if a user is logged in, use the locale from the user settings
-    user = getattr(g, 'user', None)
-    if user is not None:
-        return user.locale
-    # otherwise try to guess the language from the user accept
-    # header the browser transmits.  We support fr/en in this
-    # example.  The best match wins.
-    return request.accept_languages.best_match(['fr', 'en'])
-
-
-@babel.timezoneselector
-def get_timezone():
-    user = getattr(g, 'user', None)
-    if user is not None:
-        return user.timezone
-
-
 api = CustomAPI(flask_app,
                 version='1.0.0', title='RoomReservationService API',
                 description='RoomReservationService API Documentation', doc='/doc', prefix='/api',
                 authorizations=authorizations)
 
 # Namespaces
-default_api_ns = api.namespace('api', description='default API')
+default_api_ns = api.namespace('', description='default API')
 
 
 class FlaskModule(BaseModule):
 
-    def __init__(self,  config: ConfigManager):
+    def __init__(self, config: ConfigManager):
 
         BaseModule.__init__(self, config.service_config['name'] + '.FlaskModule', config)
 
@@ -166,8 +166,6 @@ class FlaskModule(BaseModule):
         flask_app.secret_key = config.service_config['ServiceUUID']
         flask_app.config.update({'BABEL_DEFAULT_LOCALE': 'fr'})
         flask_app.config.update({'SESSION_COOKIE_SECURE': True})
-
-        self.session = Session(flask_app)
 
         # Init API
         self.init_api()
@@ -232,15 +230,19 @@ class FlaskModule(BaseModule):
 
     def init_views(self):
         from .Views.Index import Index
-        from .Views.Login import Login
 
         # Default arguments
         args = []
         kwargs = {'flaskModule': self}
 
         # Will create a function that calls the __index__ method with args, kwargs
-        flask_app.add_url_rule('/index', view_func=Index.as_view('index', *args, **kwargs))
-        flask_app.add_url_rule('/login', view_func=Login.as_view('login', *args, **kwargs))
+        flask_app.add_url_rule('/', view_func=Index.as_view('index', *args, **kwargs))
+
+
+@flask_app.errorhandler(404)
+def page_not_found(e):
+    # This might occur in Angular if the user is refreshing the page with the web browser
+    return flask_app.send_static_file('index.html')
 
 
 @flask_app.after_request
