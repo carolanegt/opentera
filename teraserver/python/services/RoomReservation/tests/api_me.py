@@ -4,7 +4,7 @@ from requests import get
 class Config:
     hostname = 'localhost'
     port = 40075
-    servicename = '/rooms'
+    servicename = '/room'
 
     # User endpoints
     user_login_endpoint = '/api/user/login'
