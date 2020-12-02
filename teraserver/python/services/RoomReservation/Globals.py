@@ -13,6 +13,6 @@ config_man = ConfigManager()
 # Database manager
 db_man = DBManager()
 
-# OpenTera com manager
-service_opentera = None
+# Global service object
+service = None
 
