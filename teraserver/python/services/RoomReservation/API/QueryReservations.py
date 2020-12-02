@@ -7,7 +7,7 @@ from sqlalchemy import exc
 from flask_babel import gettext
 from datetime import datetime, timedelta
 
-from services.RoomReservation.Globals import service_opentera
+from services.RoomReservation import Globals
 from services.shared.ServiceAccessManager import ServiceAccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
@@ -63,7 +63,7 @@ class QueryReservations(Resource):
                 if reservation.session_uuid and args['id_reservation']:
                     endpoint = '/api/service/sessions'
                     params = {'uuid_session': reservation.session_uuid}
-                    response = service_opentera.get_from_opentera(endpoint, params)
+                    response = Globals.service.get_from_opentera(endpoint, params)
 
                     if response.status_code == 200:
                         session_info = response.json()

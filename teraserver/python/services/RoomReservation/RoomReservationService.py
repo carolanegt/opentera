@@ -143,7 +143,7 @@ if __name__ == '__main__':
     Globals.config_man.service_config['hostname'] = service_info['service_hostname']
 
     # Create the Service
-    service = ServiceRoomReservation(Globals.config_man, service_info)
+    Globals.service = ServiceRoomReservation(Globals.config_man, service_info)
 
     # Start App / reactor events
     reactor.run()
