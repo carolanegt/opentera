@@ -1,6 +1,6 @@
 from flask.views import MethodView
-from flask import render_template, request
-from services.shared.ServiceAccessManager import ServiceAccessManager
+from services.RoomReservation.FlaskModule import flask_app
+from werkzeug.exceptions import NotFound
 
 
 class Index(MethodView):
@@ -12,21 +12,9 @@ class Index(MethodView):
         self.flaskModule = kwargs.get('flaskModule', None)
         print(self.flaskModule)
 
-    @ServiceAccessManager.token_required
     def get(self):
-        hostname = self.flaskModule.config.server_config['hostname']
-        port = self.flaskModule.config.server_config['port']
-        backend_hostname = self.flaskModule.config.backend_config['hostname']
-        backend_port = self.flaskModule.config.backend_config['port']
-        if 'X_EXTERNALHOST' in request.headers:
-            backend_hostname = request.headers['X_EXTERNALHOST'];
-
-        if 'X_EXTERNALPORT' in request.headers:
-            backend_port = request.headers['X_EXTERNALPORT'];
-
-        return render_template('index.html', hostname=hostname, port=port,
-                               backend_hostname=backend_hostname, backend_port=backend_port)
-
-    def post(self):
-        print('post')
-        pass
+        try:
+            return flask_app.send_static_file('index.html')
+        except NotFound:
+            # If the file was not found, send the default index file
+            return flask_app.send_static_file('default_index.html')
