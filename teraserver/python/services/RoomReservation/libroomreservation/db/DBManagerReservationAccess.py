@@ -13,7 +13,8 @@ class DBManagerReservationAccess:
 
     def query_reservation_by_room(self, room_id, start_date, end_date):
         start_date = datetime.strptime(start_date, '%d-%m-%Y').date()
-        end_date = datetime.strptime(end_date, '%d-%m-%Y').date()
+        end_date = datetime.strptime(end_date, '%d-%m-%Y')
+        end_date = end_date.replace(hour=23, minute=59, second=59)
 
         reservations = RoomReservationReservation.query.filter(
             RoomReservationReservation.reservation_start_datetime.between(start_date, end_date),
