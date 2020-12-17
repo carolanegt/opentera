@@ -100,9 +100,25 @@ class QueryReservations(Resource):
             return gettext('Missing id_reservation or id_room arguments'), 400
 
         # Check if there is already a reservation for that room between the times of the new reservation
-        reservations = reservation_access.query_overlaps(reservation_json)
-        if reservations is not None:
-            return gettext('A reservation already uses this time slot'), 400
+        if reservation_json['id_reservation'] == 0:
+            reservations = reservation_access.query_overlaps(reservation_json)
+            if reservations is not None:
+                return gettext('A reservation already uses this time slot'), 400
+
+        # Create the session associated with the reservation
+        if 'session' in reservation_json:
+            session = reservation_json['session']
+            session['id_session_type'] = 1  # "Suivi vidéo"
+            endpoint = '/api/service/sessions'
+            params = {'session': session}
+            response = Globals.service.post_to_opentera(endpoint, params)
+
+            if response.status_code == 200:
+                session_info = response.json()
+                reservation_json['session_uuid'] = session_info[0]['session_uuid']
+                reservation_json['session'] = session_info
+            else:
+                return 'Unauthorized', 403
 
         # Do the update!
         if reservation_json['id_reservation'] > 0:
