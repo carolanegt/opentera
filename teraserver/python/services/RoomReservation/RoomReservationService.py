@@ -40,7 +40,7 @@ class ServiceRoomReservation(ServiceOpenTera):
     def register_to_events(self):
         # Need to register to events produced by UserManagerModule
         ret1 = yield self.subscribe_pattern_with_callback(create_module_event_topic_from_name(
-            ModuleNames.DATABASE_MODULE_NAME, 'TeraSession'), self.database_event_received)
+            ModuleNames.DATABASE_MODULE_NAME, 'session'), self.database_event_received)
 
         print(ret1)
 
@@ -69,6 +69,7 @@ class ServiceRoomReservation(ServiceOpenTera):
         print('RoomReservationService.handle_database_event', event)
 
         if event.type == messages.DatabaseEvent.DB_DELETE:
+            print("Delete Session Event")
             # TODO delete reservation linked to the deleted session, event_name = 'session'
             # Resend invitation to newly connected user
             pass
