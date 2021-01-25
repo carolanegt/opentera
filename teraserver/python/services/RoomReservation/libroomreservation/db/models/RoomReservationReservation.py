@@ -8,6 +8,7 @@ class RoomReservationReservation(db.Model, BaseModel):
     __tablename__ = "t_reservations"
     id_reservation = db.Column(db.Integer, db.Sequence('id_reservation_sequence'), primary_key=True, autoincrement=True)
     id_room = db.Column(db.Integer, db.ForeignKey('t_rooms'), nullable=True)
+    name = db.Column(db.String, nullable=False)
     session_uuid = db.Column(db.String(36), nullable=True, unique=True)
     user_uuid = db.Column(db.String(36), nullable=False)
     reservation_start_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -28,6 +29,7 @@ class RoomReservationReservation(db.Model, BaseModel):
     def create_defaults():
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Réunion'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=1)
@@ -36,6 +38,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 2
+        base_reservation.name = 'Séance télé avec monsieur Dupont'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=1)
@@ -44,6 +47,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Séance de formation télé'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=1, hours=1.5)
@@ -52,6 +56,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Séance de téléréadaptation avec Micheline Tremblay'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=1, hours=3)
@@ -60,6 +65,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Séance de téléréadaptation avec Micheline Tremblay'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=6, hours=2)
@@ -68,6 +74,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Séance de téléréadaptation avec Micheline Tremblay'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(days=2, hours=1.5)
@@ -76,6 +83,7 @@ class RoomReservationReservation(db.Model, BaseModel):
 
         base_reservation = RoomReservationReservation()
         base_reservation.id_room = 1
+        base_reservation.name = 'Séance de physio avec Tintin'
         base_reservation.user_name = 'admin'
         base_reservation.user_uuid = '7234fd5c-7486-4206-910e-02aa43282f1e'
         base_reservation.reservation_end_datetime = datetime.datetime.now() + timedelta(hours=5)
