@@ -8,7 +8,7 @@ from flask_babel import gettext
 from datetime import datetime, timedelta
 
 from services.RoomReservation import Globals
-from services.shared.ServiceAccessManager import ServiceAccessManager
+from opentera.services.ServiceAccessManager import ServiceAccessManager
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationReservation import RoomReservationReservation
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager

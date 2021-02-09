@@ -1,13 +1,12 @@
 import datetime
-from datetime import timedelta
 
-from flask import jsonify, session, request
-from flask_restx import Resource, reqparse, fields
+from flask import jsonify
+from flask_restx import Resource, reqparse
 from sqlalchemy.exc import InvalidRequestError
 from services.BureauActif.FlaskModule import default_api_ns as api
 
 from services.BureauActif.libbureauactif.db.DBManager import DBManager
-from services.shared.ServiceAccessManager import ServiceAccessManager, current_participant_client
+from opentera.services.ServiceAccessManager import ServiceAccessManager, current_participant_client
 
 # Parser definition(s)
 get_parser = api.parser()
@@ -37,15 +36,16 @@ class QueryCalendarData(Resource):
         args = parser.parse_args()
 
         calendar_days = []
-        if not args['date']:
-            return 'Missing date argument', 400
-        elif args['date']:
+        if args['uuid']:
+            participant_uuid = args['uuid']
+        else:
+            participant_uuid = current_participant_client.participant_uuid
+
+        if args['date']:
             date = datetime.datetime.strptime(args['date'], '%d-%m-%Y').date()
-            if args['uuid']:
-                participant_uuid = args['uuid']
-            else:
-                participant_uuid = current_participant_client.participant_uuid
             calendar_days = calendar_access.query_calendar_day_by_month(date, participant_uuid)
+        else:
+            calendar_days = calendar_access.query_last_calendar_days(participant_uuid)
 
         try:
             calendar_days_list = []

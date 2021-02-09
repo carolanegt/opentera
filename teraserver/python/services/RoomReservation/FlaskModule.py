@@ -5,7 +5,7 @@ from flask_restx import Api
 from .ConfigManager import ConfigManager
 from flask_babel import Babel
 
-from modules.BaseModule import BaseModule
+from opentera.modules.BaseModule import BaseModule
 
 # WebSockets
 from autobahn.twisted.resource import WebSocketResource, WSGIRootResource

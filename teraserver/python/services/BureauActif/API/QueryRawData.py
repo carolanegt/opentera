@@ -2,12 +2,12 @@ import datetime
 import uuid
 import os
 
-from flask import jsonify, session, request
-from flask_restx import Resource, reqparse, fields
+from flask import request
+from flask_restx import Resource
 from werkzeug.utils import secure_filename
 
 from services.BureauActif import Globals
-from services.shared.ServiceAccessManager import ServiceAccessManager, current_login_type, current_device_client, \
+from opentera.services.ServiceAccessManager import ServiceAccessManager, current_login_type, current_device_client, \
     LoginType
 
 from services.BureauActif.FlaskModule import default_api_ns as api, flask_app
@@ -114,7 +114,7 @@ class QueryRawData(Resource):
             # Format is a dict with:
             # data -> A list of list which each item is a row in the raw data file:
             #          Timestamp, current_height, button_pressed, present, raw_sensor_values
-            # timers -> dict of values for "up_secs" and "down_secs", corresponding to the current Bureau config
+            # timers -> dict of values for "minutes_up" and "minutes_down", corresponding to the current Bureau config
             # config -> dict of values for the "max_height" and the "min_height" of the Bureau
 
             data_process.process_data(raw_data, file_db_entry)

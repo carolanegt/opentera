@@ -3,10 +3,10 @@ from flask_restx import Resource, reqparse, inputs
 from sqlalchemy import exc
 from modules.LoginModule.LoginModule import user_multi_auth
 from modules.FlaskModule.FlaskModule import user_api_ns as api
-from libtera.db.models.TeraUser import TeraUser
-from libtera.db.models.TeraServiceAccess import TeraServiceAccess
-from libtera.db.models.TeraServiceRole import TeraServiceRole
-from libtera.db.models.TeraUserGroup import TeraUserGroup
+from opentera.db.models.TeraUser import TeraUser
+from opentera.db.models.TeraServiceAccess import TeraServiceAccess
+from opentera.db.models.TeraServiceRole import TeraServiceRole
+from opentera.db.models.TeraUserGroup import TeraUserGroup
 from flask_babel import gettext
 from modules.DatabaseModule.DBManager import DBManager
 import modules.Globals as Globals
@@ -15,13 +15,14 @@ import modules.Globals as Globals
 get_parser = api.parser()
 get_parser.add_argument('id_user_group', type=int, help='ID of the user group to query')
 get_parser.add_argument('id_user', type=int, help='ID of the user to get all user groups')
+get_parser.add_argument('id_site', type=int, help='ID of the site to get all user groups with access in that site')
 get_parser.add_argument('list', type=inputs.boolean, help='Flag that limits the returned data to minimal information')
 
 # post_parser = reqparse.RequestParser()
 # post_parser.add_argument('user_group', type=str, location='json', help='User group to create / update', required=True)
 post_schema = api.schema_model('user_group', {'properties': TeraUserGroup.get_json_schema(),
-                                                   'type': 'object',
-                                                   'location': 'json'})
+                                              'type': 'object',
+                                              'location': 'json'})
 
 delete_parser = reqparse.RequestParser()
 delete_parser.add_argument('id', type=int, help='User group ID to delete', required=True)
@@ -90,6 +91,8 @@ class UserQueryUserGroups(Resource):
         elif args['id_user']:
             if args['id_user'] in user_access.get_accessible_users_ids():
                 user_groups = user_access.query_usergroups_for_user(args['id_user'])
+        elif args['id_site']:
+            user_groups = user_access.query_access_for_site(site_id=args['id_site'])
         else:
             # If we have no arguments, return all accessible user groups
             user_groups = user_access.get_accessible_users_groups()
@@ -165,7 +168,7 @@ class UserQueryUserGroups(Resource):
             # Check if the current user is site admin in all of those projects
             project_ids = [project['id_project'] for project in json_projects]
 
-            from libtera.db.models.TeraProject import TeraProject
+            from opentera.db.models.TeraProject import TeraProject
             for proj_id in project_ids:
                 proj = TeraProject.get_project_by_id(proj_id)
                 if proj and user_access.get_site_role(proj.id_site) != 'admin':

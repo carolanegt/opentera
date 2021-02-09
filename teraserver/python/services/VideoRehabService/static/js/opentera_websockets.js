@@ -1,10 +1,10 @@
-var socketConnected = false;
-var socketUrl = "";
+let socketUrl = "";
+let ws = undefined;
 
 function webSocketConnect(){
 
 	if ("WebSocket" in window) {
-	   if (socketUrl == "")
+	   if (socketUrl === "")
 	        socketUrl = sessionStorage.getItem("websocket_url");
 
 	   if (!socketUrl){
@@ -44,8 +44,8 @@ function ws_Closed(){
 	console.log("Websocket closed.");
 
 	// Must make a new "login" request?
-	// Retry to connect...
-	//webSocketConnect();
+	// Retry to connect in 5 seconds...
+    setTimeout(function(){ webSocketConnect(); }, 5000);
 
 	// Redirect to login for now...
 	//window.location.replace("login");
@@ -53,28 +53,27 @@ function ws_Closed(){
 }
 
 function ws_MessageReceived(evt){
-	var received_msg = evt.data;
+	let received_msg = evt.data;
     console.log("Websocket message: " + received_msg);
 
-    var json_msg = JSON.parse(received_msg);
+    let json_msg = JSON.parse(received_msg);
 
-    var msg_type = json_msg.message.events[0]["@type"];
+    let msg_type = json_msg.message.events[0]["@type"];
 
     // Join session
-    if (msg_type == "type.googleapis.com/opentera.protobuf.JoinSessionEvent"){
+    if (msg_type === "type.googleapis.com/opentera.protobuf.JoinSessionEvent"){
         hideElement('btnLogout');
         hideElement('logos');
         $('#mainview').removeClass('iframe-with-footer');
         $('#mainview').addClass('iframe-without-footer');
         // Join video session event - redirect to session url
-        //document.getElementById('mainview').src = json_msg.data[0]["sessionUrl"];
-        //window.parent.document.getElementById('mainview').contentWindow.document.getElementById("dialogWait").style.display="inline";
+        showMainViewElement("dialogWait");
+        hideMainViewElement("messages");
         current_session_url = json_msg.message.events[0]["sessionUrl"];
         // Append name and uuid
         current_session_url += "&name=" + participant_name.replace("#", "") + "&uuid=" + participant_uuid;
-        console.log ("Joining session at " + current_session_url)
-        testCurrentSessionUrlValid();
-
+        console.log ("About to join session: " + current_session_url)
+        setTimeout(waitDialogTimeout, 3000);
     }
 
     // Stop or leave session
@@ -87,6 +86,12 @@ function ws_MessageReceived(evt){
         $('#mainview').removeClass('iframe-with-footer');
         $('#mainview').addClass('iframe-without-footer');
         //window.location.replace("participant_endpoint?token=" + sessionStorage.getItem("participant_token"));
-        document.getElementById('mainview').src = "participant_localview?token=" + sessionStorage.getItem("participant_token");
+        document.getElementById('mainview').src = "participant_localview?token=" + sessionStorage.getItem("participant_token") +
+        '&message=Votre séance est maintenant terminée. Vous pouvez maintenant vous déconnecter ou fermer cette page.&message_type=light';
     }
+}
+
+function waitDialogTimeout(){
+    console.log("Joining session now!");
+    joinSession();
 }

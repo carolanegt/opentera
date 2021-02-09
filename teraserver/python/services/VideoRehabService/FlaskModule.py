@@ -1,27 +1,21 @@
 # Flask
 from flask import Flask, request, g, url_for
-from flask_session import Session
 from flask_restx import Api
 from flask_babel import Babel
 
 # OpenTera
-from modules.BaseModule import BaseModule, ModuleNames
+from opentera.modules.BaseModule import BaseModule
 from services.VideoRehabService.ConfigManager import ConfigManager
 
 # WebSockets
-from autobahn.twisted.resource import WebSocketResource, WSGIRootResource
+from autobahn.twisted.resource import WSGIRootResource
 
 # Twisted
-from twisted.application import internet, service
-from twisted.internet import reactor, ssl
-from twisted.python.threadpool import ThreadPool
+from twisted.internet import reactor
 from twisted.web.http import HTTPChannel
 from twisted.web.server import Site
 from twisted.web.static import File
 from twisted.web.wsgi import WSGIResource
-from twisted.python import log
-from OpenSSL import SSL
-import sys
 import os
 
 # API
@@ -242,6 +236,7 @@ class FlaskModule(BaseModule):
         from services.VideoRehabService.Views.ParticipantLocalView import ParticipantLocalView
         from services.VideoRehabService.Views.ParticipantDashboard import ParticipantDashboard
         from services.VideoRehabService.Views.ParticipantEndpoint import ParticipantEndpoint
+        from services.VideoRehabService.Views.ParticipantError import ParticipantError
 
         # Will create a function that calls the __index__ method with args, kwargs
         flask_app.add_url_rule('/', view_func=Index.as_view('index', *args, **kwargs))
@@ -251,6 +246,8 @@ class FlaskModule(BaseModule):
                                                                                       **kwargs))
         flask_app.add_url_rule('/participant_endpoint',
                                view_func=ParticipantEndpoint.as_view('participant_endpoint', *args, **kwargs))
+        flask_app.add_url_rule('/participant_error',
+                               view_func=ParticipantError.as_view('participant_error', *args, **kwargs))
 
 
 @flask_app.after_request

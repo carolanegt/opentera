@@ -35,6 +35,7 @@ function showButtons(local, show, index){
     let srcControls = $("#" + view_prefix + "SourcesControls" + index);
     let statusControls = $("#" + view_prefix + "ViewControls" + index)
     let videoControls = $("#" + view_prefix + "VideoControls" + index);
+    let viewCameras = $("#" + view_prefix + "ViewCameras" + index);
 
     if (videoControls.length){
         // Must hide individual icons according to state
@@ -132,6 +133,32 @@ function showButtons(local, show, index){
         }
     }
 
+    if (viewCameras.length){
+        let videoSwapIcon = $("#" + view_prefix + "VideoSwap" + index);
+        if (videoSwapIcon.length){
+            if (local === true){
+                if (videoSources.length>1)
+                    (show === true) ? videoSwapIcon.show() : videoSwapIcon.hide();
+                else
+                    videoSwapIcon.hide();
+            }else{
+                if (index <= remoteStreams.length){
+                    let contact_index = getContactIndexForPeerId(remoteStreams[index-1].peerid);
+                    if (contact_index !== undefined){
+                        if (remoteContacts[contact_index].status &&
+                            remoteContacts[contact_index].status.videoSrcLength > 1){
+                            (show === true) ? videoSwapIcon.show() : videoSwapIcon.hide();
+                        }else{
+                            videoSwapIcon.hide();
+                        }
+                    }else{
+                        videoSwapIcon.hide();
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 function showStatusControls(local, index, show){
@@ -144,20 +171,6 @@ function inactiveTimeout(local, index){
     stopInactiveTimer(local, index);
     showButtons(local, false, index);
 }
-
-function showAllButtons(show){
-    showButtons(true, show, 1);
-    showButtons(true, show, 2);
-    showButtons(false, show, 1);
-    showButtons(false, show, 2);
-    showButtons(false, show,3);
-    showButtons(false, show,4);
-}
-
-/*function showSecondaryLocalSourcesIcons(show_add_button, show_remove_button){
-    (show_add_button) ? showElement('imgAddLocalVideo2') : hideElement('imgAddLocalVideo2');
-    (show_remove_button) ? showElement('imgRemoveLocalVideo2') : hideElement('imgRemoveLocalVideo2');
-}*/
 
 function showVideoMirror(local, index, mirror){
     let video_widget = getVideoWidget(local, index);
@@ -304,7 +317,7 @@ function btnShareScreenClicked(){
     }
 
     if (remoteStreams.length >= 4){
-        showError("btnShareScreenClicked", "Impossible de partager l'écran: trop de sources dans la séance", true, false);
+        showError("btnShareScreenClicked", translator.translateForKey("errors.screenshare-no-slot", currentLang), true, false);
         return;
     }
 
@@ -329,8 +342,9 @@ function btnShareScreenClicked(){
 
         // Force views on new screen share
         if (!isParticipant){
-            setPrimaryView(local_peerid, "ScreenShare");
-            setPrimaryViewIcon(local_peerid, "ScreenShare");
+            //setPrimaryView(local_peerid, "ScreenShare");
+            //sendPrimaryView(local_peerid, "ScreenShare");
+            //setPrimaryViewIcon(local_peerid, "ScreenShare");
         }
 
     }).catch(function (){
@@ -347,7 +361,7 @@ function btnShow2ndLocalVideoClicked(){
     }
 
     if (remoteStreams.length >= 4){
-        showError("btnShow2ndLocalVideoClicked", "Impossible d'ajouter une deuxième source vidéo: trop de sources dans la séance.'", true, false);
+        showError("btnShow2ndLocalVideoClicked", translator.translateForKey("errors.extrasource-no-slot", currentLang), true, false);
         return;
     }
 
@@ -381,7 +395,11 @@ function clearStatusMsg(){
     $('#statusAlert').hide();
 }
 
-function setConfigDialogValues(audios, videos, config){
+function setConfigDialogValues(peer_id, audios, videos, config){
+    // Peer id infos
+    let peerInfos = $('#configPeerId')[0];
+    peerInfos.value = peer_id;
+
     // Main video source selector
     let videoSelect = $('#videoSelect')[0];
     videoSelect.options.length = 0;
@@ -393,12 +411,12 @@ function setConfigDialogValues(audios, videos, config){
     // Secondary video source selector
     let videoSelect2 = $('#videoSelect2')[0];
     videoSelect2.options.length = 0;
-    videoSelect2.options[videoSelect2.options.length] = new Option("Aucune", "0");
+    videoSelect2.options[videoSelect2.options.length] = new Option(translator.translateForKey("configDialog.none", currentLang), "0");
 
     // Secondary audio source selector
     let audioSelect2 = $('#audioSelect2')[0];
     audioSelect2.options.length = 0;
-    audioSelect2.options[audioSelect2.options.length] = new Option("Aucune", "0");
+    audioSelect2.options[audioSelect2.options.length] = new Option(translator.translateForKey("configDialog.none", currentLang), "0");
 
     // Mirror toggle
     let mirrorCheck = $('#mirrorCheck')[0];
@@ -426,33 +444,52 @@ function setConfigDialogValues(audios, videos, config){
 }
 
 function configDialogClosed(){
-    // Compare values with current config and apply changes if needed
+    let peer_id = $('#configPeerId')[0].value;
     let videoSelect = $('#videoSelect')[0];
     let audioSelect = $('#audioSelect')[0];
     let videoSelect2 = $('#videoSelect2')[0];
     let audioSelect2 = $('#audioSelect2')[0];
     let mirrorCheck = $('#mirrorCheck')[0];
 
-    if (videoSelect.selectedIndex !== currentConfig['currentVideoSourceIndex'] ||
-        audioSelect.selectedIndex !== currentConfig['currentAudioSourceIndex']){
+    let new_config = {
+        'currentVideoSourceIndex': videoSelect.selectedIndex,
+        'currentAudioSourceIndex': audioSelect.selectedIndex,
+        'video1Mirror': mirrorCheck.checked,
+        'currentVideoSource2Index': videoSelect2.selectedIndex-1,
+        'currentAudioSource2Index': audioSelect2.selectedIndex-1
+    };
+
+    if (peer_id === local_peerid){
+        // Compare values with current config and apply changes if needed
+        updateLocalConfig(new_config);
+    }else{
+        // Send update config message to remote
+        sendUpdateConfig(peer_id, new_config);
+    }
+}
+
+function updateLocalConfig(new_config){
+
+    if (new_config['currentVideoSourceIndex'] !== currentConfig['currentVideoSourceIndex'] ||
+        new_config['currentAudioSourceIndex'] !== currentConfig['currentAudioSourceIndex']){
         // Video and/or audio source changed
-        currentConfig['currentVideoSourceIndex'] = videoSelect.selectedIndex;
-        currentConfig['currentAudioSourceIndex'] = audioSelect.selectedIndex;
+        currentConfig['currentVideoSourceIndex'] = new_config['currentVideoSourceIndex'];
+        currentConfig['currentAudioSourceIndex'] = new_config['currentAudioSourceIndex'];
         updateLocalAudioVideoSource(1);
     }
 
-    if (mirrorCheck.checked !== currentConfig['video1Mirror']){
+    if (new_config['video1Mirror'] !== currentConfig['video1Mirror']){
         // Mirror changed
-        currentConfig['video1Mirror'] = mirrorCheck.checked;
+        currentConfig['video1Mirror'] = new_config['video1Mirror'];
         setMirror(currentConfig['video1Mirror'], true, 1);
     }
 
-    if (videoSelect2.selectedIndex !== currentConfig['currentVideoSource2Index'] ||
-        audioSelect2.selectedIndex !== currentConfig['currentAudioSource2Index']
+    if (new_config['currentVideoSource2Index'] !== currentConfig['currentVideoSource2Index'] ||
+        new_config['currentAudioSource2Index'] !== currentConfig['currentAudioSource2Index']
     ){
         // Secondary audio/video source changed
-        currentConfig['currentVideoSource2Index'] = videoSelect2.selectedIndex-1;
-        currentConfig['currentAudioSource2Index'] = audioSelect2.selectedIndex-1;
+        currentConfig['currentVideoSource2Index'] = new_config['currentVideoSource2Index'];
+        currentConfig['currentAudioSource2Index'] = new_config['currentAudioSource2Index'];
     }
 }
 
@@ -531,32 +568,23 @@ function refreshRemoteStatusIcons(peerid){
     if (status.video !== undefined) {
         updateStatusIconState(status.video, false, index + 1, "Video");
     }
-
-    if (status.primaryView !== undefined){
-        if (isParticipant){
-            if (status.primaryView.peerid !== 0){
-                index = getStreamIndexForPeerId(peerid, status.primaryView.streamName);
-            }
-
-            if (index !== undefined){
-                let local = (status.primaryView.peerid === local_peerid);
-                let view_id = getVideoViewId(local, index+1);
-                setLargeView(view_id);
-
-            }else{
-                // Defaults to first remote view
-                setLargeView('remoteView1');
-
-            }
-       }
-        primaryView = status.primaryView;
-        setPrimaryViewIcon(status.primaryView.peerid, status.primaryView.streamName);
-    }
 }
 
 function getVideoViewId(local, index){
     let view_prefix = ((local === true) ? 'local' : 'remote');
     return view_prefix + "View" + index;
+}
+
+function getFirstRemoteUserVideoViewId(){
+    for (let i=0; i<remoteContacts.length; i++){
+        if (remoteContacts[i].status.isUser){
+            let video_index = getStreamIndexForPeerId(remoteContacts[i].peerid);
+            if (video_index !== undefined){
+                return getVideoViewId(false, video_index+1);
+            }
+        }
+    }
+    return undefined;
 }
 
 function muteMicroAll(){
@@ -589,6 +617,23 @@ function showChronosDialog(){
 
     $('#chronosDialog').modal('show');
 
+}
+
+function showMeasuresDialog(){
+    // Fill participants list
+    let partSelect = $('#measurePartSelect')[0];
+    partSelect.options.length = 0;
+
+    for (let i=0; i<remoteContacts.length; i++){
+        let index = getStreamIndexForPeerId(remoteContacts[i].peerid, 'default');
+        if (index !== undefined){
+            partSelect.options[partSelect.options.length] = new Option(getTitle(false, index+1), index+1);
+        }
+    }
+
+    onMeasureParticipantChanged(); // Display currently selected video
+
+    $('#measureDialog').modal('show');
 }
 
 function showTextDisplay(local, index, show){
@@ -631,7 +676,7 @@ function selectPrimaryView(local, index){
             peer_id = remoteStreams[index-1].peerid;
         }
     }
-    setPrimaryView(peer_id, streamName);
+    sendPrimaryView(peer_id, streamName);
     setPrimaryViewIcon(peer_id, streamName);
 }
 
@@ -639,18 +684,24 @@ function setPrimaryViewIcon(peer_id, streamName){
     let local = (peer_id === local_peerid);
     // Browse all streams, and set icon accordingly
     for (let i=0; i<localStreams.length; i++){
+        let starButton = getButtonIcon(true, i+1, "Star");
         if (local === true && localStreams[i].streamname === streamName){
             updateButtonIconState(true, true, i+1, 'Star');
+            starButton.show();
         }else{
             updateButtonIconState(false, true, i+1, 'Star');
+            starButton.hide();
         }
     }
 
     for (let i=0; i<remoteStreams.length; i++){
+        let starButton = getButtonIcon(false, i+1, "Star");
         if (local === false && remoteStreams[i].peerid === peer_id && remoteStreams[i].streamname === streamName){
             updateButtonIconState(true, false, i+1, 'Star');
+            starButton.show();
         }else{
             updateButtonIconState(false, false, i+1, 'Star');
+            starButton.hide();
         }
     }
 }
@@ -666,3 +717,62 @@ function stopSounds(){
     document.getElementById("audioDisconnected").pause();
     document.getElementById("audioCalling").pause();
 }
+
+function btnConfigClicked(local, index){
+    if (local === true){
+        showConfigDialog(local_peerid, audioSources, videoSources, currentConfig);
+    }else{
+        let target_peerid = remoteStreams[index-1].peerid;
+        sendQueryConfig(target_peerid);
+    }
+}
+
+function showConfigDialog(peer_id, audios, videos, config){
+    setConfigDialogValues(peer_id, audios, videos, config);
+    let peer_name = localContact.name;
+    if (peer_id !== local_peerid){
+        peer_name = remoteContacts[getContactIndexForPeerId(peer_id)].name;
+    }
+    $('#configDialogLongTitle')[0].innerHTML = translator.translateForKey("configDialog.title", currentLang) + " - " + peer_name;
+    $('#configDialog').modal('show');
+}
+
+function swapVideoSource(local, index){
+    if (local === true){
+        currentConfig['currentVideoSourceIndex'] += 1;
+        if (currentConfig['currentVideoSourceIndex'] >= videoSources.length)
+            currentConfig['currentVideoSourceIndex'] = 0;
+        updateLocalAudioVideoSource(1);
+    }else{
+        let target_peerid = remoteStreams[index-1].peerid;
+        sendNextVideoSource(target_peerid);
+    }
+}
+
+function resizeCanvasOverElement(canvas, element)
+{
+    let w = element.offsetWidth;
+    let h = element.offsetHeight;
+    let cv = document.getElementById(canvas);
+    cv.width = w;
+    cv.height =h;
+}
+
+/*
+$(document).on('mouseenter', '.dropup', function() {
+    console.log("MouseEnter");
+    let dropdownMenu = $(this).children(".dropdown-menu");
+    if(!dropdownMenu.is(":visible")){
+        dropdownMenu.parent().toggleClass("show");
+        dropdownMenu.toggleClass("show");
+    }
+});
+
+$(document).on('mouseleave', '.dropup', function() {
+    console.log("MouseLeave");
+    let dropdownMenu = $(this).children(".dropdown-menu");
+    if(dropdownMenu.is(":visible")){
+        dropdownMenu.parent().toggleClass("show");
+        dropdownMenu.toggleClass("show");
+    }
+});*/

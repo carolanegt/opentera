@@ -1,7 +1,7 @@
 from flask_restx import Resource
 
 # from services.RoomReservation.AccessManager import AccessManager, current_login_type, current_user_client, LoginType
-from services.shared.ServiceAccessManager import ServiceAccessManager, current_login_type, current_user_client, \
+from opentera.services.ServiceAccessManager import ServiceAccessManager, current_login_type, current_user_client, \
     LoginType
 from services.BureauActif.FlaskModule import default_api_ns as api
 
