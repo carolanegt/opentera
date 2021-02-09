@@ -1,17 +1,17 @@
 from services.RoomReservation.FlaskModule import FlaskModule, flask_app
 from services.RoomReservation.ConfigManager import ConfigManager
-from modules.RedisVars import RedisVars
-from libtera.redis.RedisClient import RedisClient
+from opentera.redis import RedisVars
+from opentera.redis.RedisClient import RedisClient
 import services.RoomReservation.Globals as Globals
 from sqlalchemy.exc import OperationalError
-from services.shared.ServiceOpenTera import ServiceOpenTera
+from opentera.services.ServiceOpenTera import ServiceOpenTera
 from twisted.internet import defer, reactor
-from modules.BaseModule import ModuleNames, create_module_event_topic_from_name
+from opentera.modules.BaseModule import ModuleNames, create_module_event_topic_from_name
 import messages.python as messages
 from google.protobuf.json_format import Parse, ParseError
 from google.protobuf.message import DecodeError
 
-from services.shared.ServiceAccessManager import ServiceAccessManager
+from opentera.services.ServiceAccessManager import ServiceAccessManager
 
 from twisted.python import log
 import sys
@@ -106,12 +106,12 @@ if __name__ == '__main__':
 
     # Global redis client
     Globals.redis_client = RedisClient(Globals.config_man.redis_config)
-    Globals.api_user_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_UserTokenAPIKey)
-    Globals.api_device_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_DeviceTokenAPIKey)
-    Globals.api_device_static_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_DeviceStaticTokenAPIKey)
-    Globals.api_participant_token_key = Globals.redis_client.redisGet(RedisVars.RedisVar_ParticipantTokenAPIKey)
+    Globals.api_user_token_key = Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_UserTokenAPIKey)
+    Globals.api_device_token_key = Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_DeviceTokenAPIKey)
+    Globals.api_device_static_token_key = Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_DeviceStaticTokenAPIKey)
+    Globals.api_participant_token_key = Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_ParticipantTokenAPIKey)
     Globals.api_participant_static_token_key = \
-        Globals.redis_client.redisGet(RedisVars.RedisVar_ParticipantStaticTokenAPIKey)
+        Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_ParticipantStaticTokenAPIKey)
 
     # Update Service Access information
     ServiceAccessManager.api_user_token_key = Globals.api_user_token_key
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     ServiceAccessManager.config_man = Globals.config_man
 
     # Get service UUID
-    service_info = Globals.redis_client.redisGet(RedisVars.RedisVar_ServicePrefixKey +
+    service_info = Globals.redis_client.redisGet(RedisVars.RedisVars.RedisVar_ServicePrefixKey +
                                                  Globals.config_man.service_config['name'])
 
     import sys
