@@ -99,11 +99,10 @@ class QueryReservations(Resource):
         if 'id_reservation' not in reservation_json or 'id_room' not in reservation_json:
             return gettext('Missing id_reservation or id_room arguments'), 400
 
-        # Check if there is already a reservation for that room between the times of the new reservation
-        if reservation_json['id_reservation'] == 0:
-            reservations = reservation_access.query_overlaps(reservation_json)
-            if reservations is not None:
-                return gettext('A reservation already uses this time slot'), 400
+        # Check if there is already a reservation for that room between the times of the reservation
+        reservations = reservation_access.query_overlaps(reservation_json)
+        if reservations is not None:
+            return gettext('A reservation already uses this time slot'), 400
 
         # Create the session associated with the reservation
         if 'session' in reservation_json:

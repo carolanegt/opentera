@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 from opentera.services.ServiceOpenTera import ServiceOpenTera
 from twisted.internet import defer, reactor
 from opentera.modules.BaseModule import ModuleNames, create_module_event_topic_from_name
-import messages.python as messages
+import opentera.messages.python as messages
 from google.protobuf.json_format import Parse, ParseError
 from google.protobuf.message import DecodeError
 

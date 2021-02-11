@@ -29,12 +29,13 @@ class DBManagerReservationAccess:
         end_time = datetime.fromisoformat(reservation['reservation_end_datetime'])
 
         reservations = RoomReservationReservation.query.filter(
-            or_(RoomReservationReservation.reservation_start_datetime.between(start_time, end_time),
-                RoomReservationReservation.reservation_end_datetime.between(start_time, end_time),
-                literal(start_time).between(RoomReservationReservation.reservation_start_datetime,
-                                   RoomReservationReservation.reservation_end_datetime),
-                literal(end_time).between(RoomReservationReservation.reservation_start_datetime,
-                                 RoomReservationReservation.reservation_end_datetime)),
+            and_(RoomReservationReservation.id_reservation != reservation['id_reservation'],
+                 or_(RoomReservationReservation.reservation_start_datetime.between(start_time, end_time),
+                     RoomReservationReservation.reservation_end_datetime.between(start_time, end_time),
+                     literal(start_time).between(RoomReservationReservation.reservation_start_datetime,
+                                                 RoomReservationReservation.reservation_end_datetime),
+                     literal(end_time).between(RoomReservationReservation.reservation_start_datetime,
+                                               RoomReservationReservation.reservation_end_datetime))),
             RoomReservationReservation.id_room == reservation['id_room']).all()
 
         if reservations:
