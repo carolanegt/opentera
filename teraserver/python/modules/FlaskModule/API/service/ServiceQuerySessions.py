@@ -167,10 +167,18 @@ class ServiceQuerySessions(Resource):
 
         # Manage session participants
         if session_parts_uuids:
+            # Add participants not already there
             current_session_part_uuids = [part.participant_uuid for part in update_session.session_participants]
-            diff_uuids = set(session_parts_uuids).difference(current_session_part_uuids)
+            part_uuids_to_add = set(session_parts_uuids).difference(current_session_part_uuids)
             update_session.session_participants.extend([TeraParticipant.get_participant_by_uuid(part_uuid)
-                                                        for part_uuid in diff_uuids])
+                                                        for part_uuid in part_uuids_to_add])
+
+            # Then, delete participants not present in the posted list
+            current_session_part_uuids.extend(list(part_uuids_to_add))
+            missing_participant_uuids = set(current_session_part_uuids).difference(session_parts_uuids)
+            for participant_uuid in missing_participant_uuids:
+                if participant_uuid in current_session_part_uuids:
+                    update_session.session_participants.remove(TeraParticipant.get_participant_by_uuid(participant_uuid))
 
         # Manage session users
         if session_users_uuids:
