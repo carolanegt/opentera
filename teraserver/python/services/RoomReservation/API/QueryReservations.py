@@ -1,7 +1,7 @@
 import json
 
 from flask import jsonify, request
-from flask_restx import Resource, reqparse
+from flask_restx import Resource, reqparse, inputs
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
@@ -19,6 +19,7 @@ get_parser.add_argument('id_reservation', type=int, help='ID of the reservation 
 get_parser.add_argument('id_room', type=int, help='ID of the room from which to get all reservations')
 get_parser.add_argument('start_date', type=str, help='Date of first day to query')
 get_parser.add_argument('end_date', type=str, help='Date of last day to query')
+get_parser.add_argument('overlaps', type=inputs.boolean, help='Return only overlapping reservations')
 
 post_parser = api.parser()
 delete_parser = reqparse.RequestParser()
@@ -43,15 +44,24 @@ class QueryReservations(Resource):
         args = parser.parse_args()
 
         reservations = []
-        if args['id_reservation']:
-            reservations = [reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])]
-        if args['id_room']:
-            if not args['start_date'] or not args['end_date']:
+        if args['overlaps']:
+            if not args['id_room'] or not args['start_date'] or not args['end_date']:
                 return 'Missing date arguments', 400
             else:
-                reservations = reservation_access.query_reservation_by_room(room_id=args['id_room'],
-                                                                            start_date=args['start_date'],
-                                                                            end_date=args['end_date'])
+                # Find reservation overlaps
+                start_time = datetime.fromisoformat(args['start_date'])
+                end_time = datetime.fromisoformat(args['end_date'])
+                reservations = reservation_access.query_overlaps(args['id_room'], start_time, end_time)
+        else:
+            if args['id_reservation']:
+                reservations = [reservation_access.query_reservation_by_id(reservation_id=args['id_reservation'])]
+            if args['id_room']:
+                if not args['start_date'] or not args['end_date']:
+                    return 'Missing date arguments', 400
+                else:
+                    reservations = reservation_access.query_reservation_by_room(room_id=args['id_room'],
+                                                                                start_date=args['start_date'],
+                                                                                end_date=args['end_date'])
 
         try:
             reservations_list = []
@@ -100,14 +110,16 @@ class QueryReservations(Resource):
             return gettext('Missing id_reservation or id_room arguments'), 400
 
         # Check if there is already a reservation for that room between the times of the reservation
-        reservations = reservation_access.query_overlaps(reservation_json)
-        if reservations is not None:
+        start_time = datetime.fromisoformat(reservation_json['reservation_start_datetime'])
+        end_time = datetime.fromisoformat(reservation_json['reservation_end_datetime'])
+        overlapping_reservations = reservation_access.query_overlaps(reservation_json['id_room'], start_time, end_time,
+                                                                     reservation_json['id_reservation'])
+        if overlapping_reservations:
             return gettext('A reservation already uses this time slot'), 400
 
         # Create the session associated with the reservation
         if 'session' in reservation_json:
             session = reservation_json['session']
-            session['id_session_type'] = 1  # "Suivi vidéo"
             endpoint = '/api/service/sessions'
             params = {'session': session}
             response = Globals.service.post_to_opentera(endpoint, params)
