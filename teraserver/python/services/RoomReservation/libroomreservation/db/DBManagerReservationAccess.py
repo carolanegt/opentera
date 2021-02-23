@@ -24,20 +24,18 @@ class DBManagerReservationAccess:
             return reservations
         return []
 
-    def query_overlaps(self, reservation):
-        start_time = datetime.fromisoformat(reservation['reservation_start_datetime'])
-        end_time = datetime.fromisoformat(reservation['reservation_end_datetime'])
+    def query_overlaps(self, id_room, start_time, end_time, id_reservation=0):
 
         reservations = RoomReservationReservation.query.filter(
-            and_(RoomReservationReservation.id_reservation != reservation['id_reservation'],
+            and_(RoomReservationReservation.id_reservation != id_reservation,
                  or_(RoomReservationReservation.reservation_start_datetime.between(start_time, end_time),
                      RoomReservationReservation.reservation_end_datetime.between(start_time, end_time),
                      literal(start_time).between(RoomReservationReservation.reservation_start_datetime,
                                                  RoomReservationReservation.reservation_end_datetime),
                      literal(end_time).between(RoomReservationReservation.reservation_start_datetime,
                                                RoomReservationReservation.reservation_end_datetime))),
-            RoomReservationReservation.id_room == reservation['id_room']).all()
+            RoomReservationReservation.id_room == id_room).all()
 
         if reservations:
             return reservations
-        return None
+        return []
