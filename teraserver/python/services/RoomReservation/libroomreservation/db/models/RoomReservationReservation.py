@@ -15,11 +15,15 @@ class RoomReservationReservation(db.Model, BaseModel):
     reservation_end_datetime = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     session_participant_uuids = db.Column(ARRAY(db.String), default=[])
 
+    room = db.relationship('RoomReservationRoom')
+
     def to_json(self, ignore_fields=None, minimal=False):
         if ignore_fields is None:
-            ignore_fields = []
+            ignore_fields = ['room']
 
-        return super().to_json(ignore_fields=ignore_fields)
+        json = super().to_json(ignore_fields=ignore_fields)
+        json['room'] = self.room.to_json(minimal=True)
+        return json
 
     @staticmethod
     def get_reservation_by_id(reservation_id: int):
