@@ -4,7 +4,8 @@ from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy import exc
 from flask_babel import gettext
 
-from opentera.services.ServiceAccessManager import ServiceAccessManager
+from opentera.services.ServiceAccessManager import ServiceAccessManager, current_user_client
+from services.RoomReservation import Globals
 from services.RoomReservation.FlaskModule import default_api_ns as api
 from services.RoomReservation.libroomreservation.db.models.RoomReservationRoom import RoomReservationRoom
 from services.RoomReservation.libroomreservation.db.DBManager import DBManager
@@ -34,7 +35,7 @@ class QueryRooms(Resource):
     @api.doc(description='Get rooms information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of rooms',
                         500: 'Database error'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def get(self):
         parser = get_parser
 
@@ -47,12 +48,30 @@ class QueryRooms(Resource):
         elif args['id_site']:
             # If we have a site id, query for rooms of that site
             rooms = room_access.query_rooms_for_site(site_id=args['id_site'])
+        else:
+            # Get all accessible sites for user
+            user = current_user_client.get_user_info()
+            sites = user[0]['sites']
+            if sites:
+                # Get all rooms
+                rooms = room_access.query_rooms(sites)
 
         try:
             rooms_list = []
 
             for room in rooms:
                 room_json = room.to_json(minimal=True)
+
+                # If room has a site associated to it, get it from OpenTera
+                if room.id_site:
+                    endpoint = '/api/service/sites'
+                    params = {'id_site': room.id_site}
+                    response = Globals.service.get_from_opentera(endpoint, params)
+
+                    if response.status_code == 200:
+                        site_info = response.json()
+                        room_json['site'] = site_info
+
                 rooms_list.append(room_json)
 
             return jsonify(rooms_list)
@@ -71,7 +90,7 @@ class QueryRooms(Resource):
                         403: 'Logged user can\'t create/update the specified room',
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
                         500: 'Internal error occurred when saving room'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def post(self):
         room_access = DBManager.roomAccess()
         # Using request.json instead of parser, since parser messes up the json!
@@ -127,7 +146,7 @@ class QueryRooms(Resource):
              responses={200: 'Success',
                         403: 'Logged user can\'t delete room (only site admin can delete)',
                         500: 'Database error.'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def delete(self):
         parser = delete_parser
         # current_user = TeraUser.get_user_by_uuid(session['_user_id'])

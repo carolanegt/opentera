@@ -196,7 +196,7 @@ class TeraService(db.Model, BaseModel):
         new_service.service_uuid = str(uuid.uuid4())
         new_service.service_key = 'RoomReservation'
         new_service.service_name = 'Room Reservation'
-        new_service.service_hostname = 'localhost'
+        new_service.service_hostname = '127.0.0.1'
         new_service.service_port = 5000
         new_service.service_endpoint = '/'
         new_service.service_clientendpoint = '/room'

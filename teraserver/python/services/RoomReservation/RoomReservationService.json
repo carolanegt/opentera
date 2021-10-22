@@ -16,7 +16,7 @@
   },
   "Database": {
     "db_type": "QPSQL",
-    "name": "roomreservation",
+    "name": "openteraroomreservation",
     "url": "127.0.0.1",
     "port": 5432,
     "username": "roomreservation",

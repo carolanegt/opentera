@@ -36,7 +36,7 @@ class QueryReservations(Resource):
     @api.doc(description='Get reservations information. Only one of the ID parameter is supported and required at once',
              responses={200: 'Success - returns list of reservations',
                         500: 'Database error'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def get(self):
         parser = get_parser
 
@@ -69,6 +69,15 @@ class QueryReservations(Resource):
             for reservation in reservations:
                 reservation_json = reservation.to_json()
 
+                if not args['overlaps']:
+                    # Get the name of the user who booked the event
+                    endpoint = '/api/service/users'
+                    params = {'user_uuid': reservation.user_uuid}
+                    response = Globals.service.get_from_opentera(endpoint, params)
+                    if response.status_code == 200 and response is not None:
+                        user = response.json()
+                        reservation_json['user_fullname'] = user['user_firstname'] + ' ' + user['user_lastname']
+
                 # If reservation has a session associated to it, get it from OpenTera
                 if reservation.session_uuid and args['id_reservation']:
                     endpoint = '/api/service/sessions'
@@ -99,7 +108,7 @@ class QueryReservations(Resource):
                         403: 'Logged user can\'t create/update the specified reservation',
                         400: 'Badly formed JSON or missing fields(id_site) in the JSON body',
                         500: 'Internal error occurred when saving reservation'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def post(self):
         reservation_access = DBManager.reservationAccess()
         # Using request.json instead of parser, since parser messes up the json!
@@ -169,7 +178,7 @@ class QueryReservations(Resource):
              responses={200: 'Success',
                         403: 'Logged user can\'t delete reservation (only site admin can delete)',
                         500: 'Database error.'})
-    @ServiceAccessManager.token_required
+    @ServiceAccessManager.token_required()
     def delete(self):
         parser = delete_parser
         # current_user = TeraUser.get_user_by_uuid(session['_user_id'])
