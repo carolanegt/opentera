@@ -20,6 +20,7 @@ get_parser.add_argument('id_room', type=int, help='ID of the room from which to 
 get_parser.add_argument('start_date', type=str, help='Date of first day to query')
 get_parser.add_argument('end_date', type=str, help='Date of last day to query')
 get_parser.add_argument('overlaps', type=inputs.boolean, help='Return only overlapping reservations')
+get_parser.add_argument('full', type=inputs.boolean, help='Get additional information for reservation')
 
 post_parser = api.parser()
 delete_parser = reqparse.RequestParser()
@@ -79,9 +80,9 @@ class QueryReservations(Resource):
                         reservation_json['user_fullname'] = user['user_firstname'] + ' ' + user['user_lastname']
 
                 # If reservation has a session associated to it, get it from OpenTera
-                if reservation.session_uuid and args['id_reservation']:
+                if reservation.session_uuid and args['full'] is True:
                     endpoint = '/api/service/sessions'
-                    params = {'uuid_session': reservation.session_uuid}
+                    params = {'uuid_session': reservation.session_uuid, 'with_session_type': True}
                     response = Globals.service.get_from_opentera(endpoint, params)
 
                     if response.status_code == 200:
@@ -139,6 +140,9 @@ class QueryReservations(Resource):
                 reservation_json['session'] = session_info
             else:
                 return 'Unauthorized', 403
+
+        # Remove room from object
+        del reservation_json['room']
 
         # Do the update!
         if reservation_json['id_reservation'] > 0:
