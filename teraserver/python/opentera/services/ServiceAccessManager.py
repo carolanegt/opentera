@@ -420,7 +420,7 @@ class ServiceAccessManager:
                 user_roles_from_token = current_user_client.get_roles_for_service(service_key)
 
                 # Check if user has the required roles
-                if not all(role in user_roles_from_token for role in roles):
+                if not any(role in user_roles_from_token for role in roles):
                     return gettext('Forbidden'), 403
 
                 # Everything ok, continue
