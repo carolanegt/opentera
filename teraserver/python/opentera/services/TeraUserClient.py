@@ -80,8 +80,8 @@ class TeraUserClient:
 
         #This line was comment because self.__service_access is already initiate as service access. Service access is not inside itself
         #if 'service_access' in self.__service_access:
-        if service_key in self.__service_access['service_access']:
-            roles = self.__service_access['service_access'][service_key]
+        if service_key in self.__service_access:
+            roles = self.__service_access[service_key]
         return roles
 
     def get_role_for_site(self, id_site: int) -> str:
